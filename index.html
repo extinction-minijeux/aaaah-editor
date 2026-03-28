@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Éditeur de cartes — Aaaah!</title>
+<style>
+:root {
+  --bg: #2b2d42;
+  --panel: #353850;
+  --accent: #e94560;
+  --accent2: #53d8fb;
+  --text: #edf2f4;
+  --text2: #9a9bb0;
+  --border: #454866;
+  --canvas-bg: #3a3d56;
+  --green: #4ade80;
+  --orange: #fb923c;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg); color: var(--text);
+  overflow: hidden; height: 100vh;
+  display: flex; flex-direction: column;
+  user-select: none;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 16px; background:var(--panel);
+  border-bottom:1px solid var(--border); height:44px; flex-shrink:0;
+}
+.topbar h1 { font-size:16px; font-weight:700; color:var(--accent); }
+.topbar h1 span { color:var(--text2); font-weight:400; }
+.topbar-actions { display:flex; gap:8px; align-items:center; }
+
+/* ── MAIN ── */
+.main { display:flex; flex:1; overflow:hidden; }
+
+/* ── PANELS ── */
+.panel-left, .panel-right {
+  background:var(--panel); display:flex; flex-direction:column; flex-shrink:0; overflow-y:auto;
+}
+.panel-left { width:200px; border-right:1px solid var(--border); }
+.panel-right { width:250px; border-left:1px solid var(--border); }
+
+.panel-section { padding:10px 12px; border-bottom:1px solid var(--border); }
+.panel-section h3 {
+  font-size:11px; text-transform:uppercase; letter-spacing:1px;
+  color:var(--text2); margin-bottom:8px;
+}
+
+/* ── TOOLS ── */
+.tool-btn {
+  display:flex; align-items:center; gap:8px; width:100%;
+  padding:7px 10px; background:none; border:1px solid transparent;
+  border-radius:6px; color:var(--text); font-size:13px; cursor:pointer;
+}
+.tool-btn:hover { background:rgba(255,255,255,0.05); }
+.tool-btn.active { background:rgba(233,69,96,0.15); border-color:var(--accent); color:var(--accent); }
+.tool-btn .icon { width:18px; text-align:center; font-size:13px; }
+.tool-btn .shortcut { margin-left:auto; font-size:10px; color:var(--text2); }
+
+/* ── CANVAS ── */
+.canvas-area { flex:1; display:flex; flex-direction:column; overflow:hidden; }
+.canvas-wrap { flex:1; position:relative; overflow:hidden; background:var(--canvas-bg); }
+#editor-canvas { display:block; }
+.canvas-info {
+  position:absolute; bottom:8px; left:8px;
+  font-size:11px; color:var(--text2); display:flex; gap:16px;
+}
+.zoom-controls { position:absolute; bottom:8px; right:8px; display:flex; gap:4px; }
+
+/* ── TOOLBAR (horizontal, under canvas) ── */
+.toolbar {
+  display:flex; align-items:center; gap:6px; padding:6px 12px;
+  background:var(--panel); border-top:1px solid var(--border); flex-shrink:0;
+}
+.toolbar .tool-btn {
+  display:flex; align-items:center; gap:5px; width:auto;
+  padding:5px 10px; background:none; border:1px solid transparent;
+  border-radius:6px; color:var(--text); font-size:12px; cursor:pointer; white-space:nowrap;
+}
+.toolbar .tool-btn:hover { background:rgba(255,255,255,0.05); }
+.toolbar .tool-btn.active { background:rgba(233,69,96,0.15); border-color:var(--accent); color:var(--accent); }
+.toolbar .tool-btn .icon { font-size:13px; }
+.toolbar .tool-btn .shortcut { font-size:9px; color:var(--text2); margin-left:2px; }
+.toolbar .sep { width:1px; height:22px; background:var(--border); flex-shrink:0; }
+.toolbar .field { display:flex; align-items:center; gap:4px; margin:0; }
+.toolbar .field label { font-size:11px; color:var(--text2); min-width:auto; }
+.toolbar .field input[type="number"] { width:40px; background:rgba(0,0,0,0.3); border:1px solid var(--border); border-radius:4px; color:var(--text); padding:2px 4px; font-size:11px; }
+.toolbar .field input[type="checkbox"] { accent-color:var(--accent); }
+
+/* ── FORM ── */
+.field { display:flex; align-items:center; gap:6px; margin-bottom:5px; }
+.field label { font-size:12px; color:var(--text2); min-width:55px; }
+.field input[type="number"], .field input[type="text"] {
+  flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:4px; color:var(--text); padding:3px 6px; font-size:12px; width:50px;
+}
+.field input:focus { outline:none; border-color:var(--accent); }
+.field input[type="checkbox"] { accent-color:var(--accent); }
+.field select {
+  flex:1; background:rgba(0,0,0,0.3); border:1px solid var(--border);
+  border-radius:4px; color:var(--text); padding:3px 6px; font-size:12px;
+}
+
+.btn {
+  padding:5px 10px; border:1px solid var(--border); border-radius:6px;
+  background:rgba(255,255,255,0.05); color:var(--text); font-size:12px; cursor:pointer;
+}
+.btn:hover { background:rgba(255,255,255,0.1); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; }
+.btn.primary:hover { background:#d63a52; }
+.btn.success { background:rgba(74,222,128,0.15); border-color:var(--green); color:var(--green); }
+.btn.full { width:100%; }
+
+/* ── SHAPE LIST ── */
+.shape-list { max-height:200px; overflow-y:auto; }
+.shape-item {
+  display:flex; align-items:center; gap:6px; padding:4px 6px;
+  border-radius:4px; font-size:11px; cursor:pointer;
+}
+.shape-item:hover { background:rgba(255,255,255,0.05); }
+.shape-item.selected { background:rgba(233,69,96,0.15); color:var(--accent); }
+.shape-item .st { color:var(--text2); min-width:45px; font-size:10px; text-transform:uppercase; }
+
+/* ── MODAL ── */
+.modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.7);
+  z-index:1000; align-items:center; justify-content:center;
+}
+.modal-overlay.visible { display:flex; }
+.modal {
+  background:var(--panel); border:1px solid var(--border);
+  border-radius:12px; padding:24px; width:640px; max-height:80vh;
+  display:flex; flex-direction:column;
+}
+.modal h2 { font-size:18px; margin-bottom:12px; color:var(--accent); }
+.modal textarea {
+  flex:1; min-height:200px; background:rgba(0,0,0,0.4);
+  border:1px solid var(--border); border-radius:8px; color:var(--text);
+  font-family:'SF Mono','Fira Code',monospace; font-size:12px; padding:12px; resize:vertical;
+}
+.modal textarea:focus { outline:none; border-color:var(--accent); }
+.modal-actions { display:flex; gap:8px; margin-top:12px; justify-content:flex-end; }
+
+::-webkit-scrollbar { width:6px; }
+::-webkit-scrollbar-track { background:transparent; }
+::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* ── HELP TOOLTIPS ── */
+.help-tip {
+  display:inline-flex; align-items:center; justify-content:center;
+  width:15px; height:15px; border-radius:50%;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.12);
+  color:var(--text2); font-size:9px; font-weight:600;
+  cursor:pointer; margin-left:auto; flex-shrink:0;
+  transition:all 0.15s;
+}
+.help-tip:hover {
+  background:var(--accent); border-color:var(--accent);
+  color:#fff; transform:scale(1.1);
+}
+.help-tip .tip-text { display:none; }
+
+.help-modal-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6);
+  z-index:2000; align-items:center; justify-content:center;
+}
+.help-modal-overlay.visible { display:flex; }
+.help-modal {
+  background:#1a1a2e; border:1px solid rgba(255,255,255,0.1);
+  border-radius:14px; padding:24px 28px; max-width:400px; width:90%;
+  box-shadow:0 12px 40px rgba(0,0,0,0.7); animation:helpIn 0.2s ease;
+}
+@keyframes helpIn { from { opacity:0; transform:scale(0.95) translateY(10px); } to { opacity:1; transform:none; } }
+.help-modal-title { font-size:15px; font-weight:700; color:var(--accent); margin-bottom:12px; }
+.help-modal-body { font-size:13px; color:#c8c8e0; line-height:1.65; }
+.help-modal-body b { color:var(--accent2); font-weight:600; }
+.help-modal-close {
+  display:block; margin:16px auto 0; padding:6px 24px;
+  background:rgba(255,255,255,0.08); border:1px solid var(--border);
+  border-radius:8px; color:var(--text); font-size:13px; cursor:pointer;
+}
+.help-modal-close:hover { background:rgba(255,255,255,0.15); }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <h1>Aaaah! <span>— Éditeur de cartes</span></h1>
+  <div class="topbar-actions">
+    <span style="font-size:11px;color:var(--text2);display:flex;align-items:center;gap:4px">
+      Saut <input type="number" id="map-saut" value="1" min="0" max="5" step="1" style="width:36px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px" title="Nombre de sauts autorisés">
+      Vit <input type="number" id="map-vitesse" value="1" min="0.1" max="5" step="0.1" style="width:40px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px" title="Multiplicateur de vitesse">
+      Grav <input type="number" id="map-gravite" value="0.4" min="0.1" max="2" step="0.1" style="width:40px;background:rgba(0,0,0,0.3);border:1px solid var(--border);border-radius:4px;color:var(--text);padding:2px 4px;font-size:11px" title="Force de gravité (0.4 = normal)">
+    </span>
+    <span style="width:1px;height:20px;background:var(--border)"></span>
+    <span id="shape-count" style="font-size:12px;color:var(--text2)">Formes : 0 / 220</span>
+    <button class="btn" onclick="undo()" title="Ctrl+Z">↩</button>
+    <button class="btn" onclick="redo()" title="Ctrl+Y">↪</button>
+    <button class="btn" onclick="showModal('import')">📥 Charger</button>
+    <button class="btn success" onclick="showModal('export')">📤 Exporter</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- LEFT PANEL -->
+<div class="panel-left">
+  <div class="panel-section">
+    <h3>Groupes <span class="help-tip">?<span class="tip-text"><b>Grouper</b> : sélectionnez plusieurs formes (Ctrl+clic ou rectangle de sélection) puis Ctrl+G ou le bouton. Les formes groupées se déplacent ensemble.<br><b>Dégrouper</b> : retire uniquement la forme sélectionnée du groupe. Si le groupe tombe à 1 forme, il est dissous.<br><b>Tout grouper</b> : regroupe toutes les formes de la carte.<br>Dans le XML, les groupes sont des balises <b>&lt;G&gt;</b>.</span></span></h3>
+    <button class="btn full" onclick="groupSelected()" style="margin-bottom:4px">Grouper la sélection</button>
+    <button class="btn full" onclick="ungroupSelected()" style="margin-bottom:4px">Dégrouper</button>
+    <button class="btn full" onclick="groupAll()">Tout grouper</button>
+  </div>
+
+  <div class="panel-section">
+    <h3>Grille <span class="help-tip">?<span class="tip-text">Grille de repère visuel purement cosmétique. N'affecte pas le placement des formes. Indépendante de l'aimantation.</span></span></h3>
+    <div class="field"><input type="checkbox" id="show-grid" checked onchange="render()"><label style="min-width:auto">Visible</label></div>
+    <div class="field"><label>Taille</label><input type="number" id="grid-size" value="20" min="5" max="100" step="5" onchange="render()"></div>
+  </div>
+  <div class="panel-section">
+    <h3>Aimantation <span class="help-tip">?<span class="tip-text"><b>Grille</b> : aligne les positions sur un pas régulier (indépendant de la grille visuelle).<br><b>Pas</b> : intervalle en pixels (ex: 5 = toutes les 5px).<br><b>Formes</b> : aligne sur les points des formes existantes (sommets, centres, extrémités). Des guides verts apparaissent quand un alignement est détecté.<br><b>Tolérance</b> : distance en pixels pour la détection d'un point proche.</span></span></h3>
+    <div class="field"><input type="checkbox" id="snap-grid"><label style="min-width:auto">Grille</label></div>
+    <div class="field"><label>Pas</label><input type="number" id="snap-step" value="5" min="1" max="50" step="1"></div>
+    <div class="field"><input type="checkbox" id="snap-shapes"><label style="min-width:auto">Formes</label></div>
+    <div class="field"><label>Tolérance</label><input type="number" id="snap-tolerance" value="8" min="2" max="20" step="1"></div>
+  </div>
+
+  <div class="panel-section">
+    <h3>Calque modèle <span class="help-tip">?<span class="tip-text">Chargez une image (screenshot du jeu, croquis, dessin) comme modèle de fond pour tracer vos formes par-dessus. L'image est purement visuelle et n'est pas exportée dans le XML. Ajustez l'opacité, la position et la taille pour l'adapter à la carte.</span></span></h3>
+    <input type="file" id="overlay-file" accept="image/*" onchange="loadOverlay(this)" style="display:none">
+    <button class="btn full" onclick="document.getElementById('overlay-file').click()" style="margin-bottom:4px">📷 Charger une image</button>
+    <div class="field"><input type="checkbox" id="show-overlay" checked onchange="render()"><label style="min-width:auto">Visible</label></div>
+    <div class="field"><label>Opacité</label><input type="range" id="overlay-opacity" min="0.05" max="0.9" step="0.05" value="0.3" style="flex:1" onchange="render()"></div>
+    <div class="field"><label>Pos. X</label><input type="number" id="overlay-x" value="0" onchange="render()"></div>
+    <div class="field"><label>Pos. Y</label><input type="number" id="overlay-y" value="0" onchange="render()"></div>
+    <div class="field"><label>Largeur</label><input type="number" id="overlay-w" value="800" onchange="render()"></div>
+    <div class="field"><label>Hauteur</label><input type="number" id="overlay-h" value="400" onchange="render()"></div>
+    <div style="display:flex;gap:4px">
+      <button class="btn" onclick="fitOverlay()" style="flex:1;font-size:11px">Ajuster</button>
+      <button class="btn" onclick="clearOverlay()" style="flex:1;font-size:11px">Supprimer</button>
+    </div>
+  </div>
+
+  <div class="panel-section" style="flex:1">
+    <h3>Formes <span id="shape-list-count" style="color:var(--accent)"></span></h3>
+    <div class="shape-list" id="shape-list"></div>
+  </div>
+</div>
+
+<!-- CANVAS + TOOLBAR -->
+<div class="canvas-area">
+  <div class="canvas-wrap" id="canvas-wrap">
+    <canvas id="editor-canvas"></canvas>
+    <div class="canvas-info">
+      <span id="info-pos">X: 0  Y: 0</span>
+      <span id="info-zoom">Zoom: 150%</span>
+    </div>
+    <div class="zoom-controls">
+      <button class="btn" onclick="zoomIn()">+</button>
+      <button class="btn" onclick="zoomOut()">−</button>
+      <button class="btn" onclick="zoomReset()">⊡</button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <button class="tool-btn active" data-tool="select" onclick="setTool('select')"><span class="icon">↖</span> Sélection <span class="shortcut">V</span></button>
+    <button class="tool-btn" data-tool="line" onclick="setTool('line')"><span class="icon">╱</span> Ligne <span class="shortcut">L</span></button>
+    <button class="tool-btn" data-tool="curve" onclick="setTool('curve')"><span class="icon">⌒</span> Courbe <span class="shortcut">C</span></button>
+    <button class="tool-btn" data-tool="rect" onclick="setTool('rect')"><span class="icon">▭</span> Rect <span class="shortcut">R</span></button>
+    <button class="tool-btn" data-tool="ellipse" onclick="setTool('ellipse')"><span class="icon">◯</span> Ellipse <span class="shortcut">E</span></button>
+    <button class="tool-btn" data-tool="polygon" onclick="setTool('polygon')"><span class="icon">⬠</span> Polygone <span class="shortcut">P</span></button>
+    <button class="tool-btn" data-tool="cri" onclick="setTool('cri')"><span class="icon">💎</span> Cri <span class="shortcut">K</span></button>
+    <button class="tool-btn" data-tool="tp" onclick="setTool('tp')"><span class="icon">🔀</span> TP <span class="shortcut">T</span></button>
+    <span class="sep"></span>
+    <div class="field"><input type="checkbox" id="default-fill"><label>Remplie</label></div>
+    <div class="field"><label>Ép.</label><input type="number" id="default-thick" min="1" max="255" value="3"></div>
+    <span class="sep"></span>
+    <span class="help-tip">?<span class="tip-text"><b>Sélection (V)</b> : clic = sélectionner, Ctrl/Cmd+clic = multi-sélection, rectangle de sélection = clic+glisser sur le vide. Point central rouge pour déplacer un groupe. Tirer les handles (carrés rouges) pour modifier les points d'une forme.<br><b>Ligne (L)</b> : cliquer-glisser. Shift = ligne droite (H/V/45°).<br><b>Courbe (C)</b> : cliquer-glisser, puis ajuster le point de contrôle bleu.<br><b>Rect (R) / Ellipse (E)</b> : cliquer-glisser. Shift = proportions contraintes.<br><b>Polygone (P)</b> : cliquer pour chaque sommet, double-clic ou clic sur le premier point pour fermer.<br><b>Cri (K)</b> : cliquer pour placer un cristal. Inversé modifiable dans les propriétés.<br><b>TP (T)</b> : cliquer pour placer, tirer le sprite destination pour la déplacer.<br><b>Forme remplie</b> : si coché, les rect/ellipse/polygones créés seront pleins.<br><b>Épaisseur</b> : valeur par défaut pour les nouvelles formes (min 1).<br><br><b>Raccourcis clavier :</b><br>Ctrl+C/V : copier-coller<br>Ctrl+G : grouper la sélection<br>Ctrl+Z/Y : annuler/refaire<br>Ctrl+D : dupliquer<br>Suppr : supprimer<br>Shift+glisser : lignes droites</span></span>
+  </div>
+</div>
+
+<!-- RIGHT PANEL -->
+<div class="panel-right">
+  <div class="panel-section">
+    <h3>Propriétés <span class="help-tip">?<span class="tip-text">Propriétés de la forme sélectionnée.<br><b>Position X/Y</b> : coordonnées sur la carte.<br><b>Largeur/Hauteur</b> : dimensions (lignes/courbes = dx/dy relatifs).<br><b>Angle X/Y</b> : point de contrôle des courbes.<br><b>Épaisseur</b> : taille du trait (min 1).<br><b>Rempli</b> : plein ou contour (rect, ellipse, polygone).<br><b>Cri</b> : inversé = retourne le cristal.<br><b>TP</b> : Dest. X/Y = coordonnées de destination du téléporteur.<br>Tirez les handles (carrés rouges) sur le canvas pour modifier visuellement.</span></span></h3>
+    <div id="props-none" style="font-size:12px;color:var(--text2)">Sélectionnez une forme</div>
+    <div id="props-form" style="display:none">
+      <div class="field"><label>Type</label><span id="prop-type" style="font-size:12px;color:var(--accent)"></span></div>
+      <div class="field"><label>Position X</label><input type="number" id="prop-x" onchange="updateProp()"></div>
+      <div class="field"><label>Position Y</label><input type="number" id="prop-y" onchange="updateProp()"></div>
+      <div id="props-dims">
+        <div class="field"><label>Largeur</label><input type="number" id="prop-w" onchange="updateProp()"></div>
+        <div class="field"><label>Hauteur</label><input type="number" id="prop-h" onchange="updateProp()"></div>
+      </div>
+      <div id="props-curve-extra" style="display:none">
+        <div class="field"><label>Angle X</label><input type="number" id="prop-cpx" onchange="updateProp()"></div>
+        <div class="field"><label>Angle Y</label><input type="number" id="prop-cpy" onchange="updateProp()"></div>
+      </div>
+      <div class="field" id="props-thickness">
+        <label>Épaisseur</label><input type="number" id="prop-thick" min="1" max="255" value="3" onchange="updateProp()">
+      </div>
+      <div class="field" id="props-fill" style="display:none">
+        <label>Rempli</label>
+        <select id="prop-fill" onchange="updateProp()">
+          <option value="0">Vide</option>
+          <option value="1">Plein</option>
+        </select>
+      </div>
+      <div id="props-cri-extra" style="display:none">
+        <div class="field"><label>Inversé</label><input type="checkbox" id="prop-cri-vis" onchange="updateProp()"></div>
+      </div>
+      <div id="props-tp-extra" style="display:none">
+        <div class="field"><label>Dest. X</label><input type="number" id="prop-tp-tox" onchange="updateProp()"></div>
+        <div class="field"><label>Dest. Y</label><input type="number" id="prop-tp-toy" onchange="updateProp()"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel-section" id="section-translation">
+    <h3>Translation <span class="help-tip">?<span class="tip-text">Anime la forme en la déplaçant vers une cible. Non disponible pour les Cri et Téléporteurs.<br><b>Placer</b> : cliquez sur le canvas pour définir visuellement la destination. Vous pouvez aussi tirer le handle bleu (cercle avec flèche).<br><b>Départ</b> : délai avant le début du mouvement (secondes).<br><b>Durée</b> : temps du trajet (secondes).<br><b>Cible X/Y</b> : coordonnées de destination (éditables manuellement).<br><b>Boucle</b> : Aucune (une seule fois), Boucle (répète), Aller-retour.</span></span></h3>
+    <div class="field"><label>Départ</label><input type="number" id="tr-start" placeholder="sec" step="0.1" onchange="updateTransform()"> <span style="font-size:10px;color:var(--text2)">sec</span></div>
+    <div class="field"><label>Durée</label><input type="number" id="tr-dur" placeholder="sec" step="0.1" onchange="updateTransform()"> <span style="font-size:10px;color:var(--text2)">sec</span></div>
+    <div class="field"><label>Dest. X</label><input type="number" id="tr-tx" onchange="updateTransform()"></div>
+    <div class="field"><label>Dest. Y</label><input type="number" id="tr-ty" onchange="updateTransform()"></div>
+    <div class="field">
+      <label>Boucle</label>
+      <select id="tr-loop" onchange="updateTransform()">
+        <option value="0">Aucune</option>
+        <option value="1">Boucle</option>
+        <option value="2">Aller-retour</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:4px;margin-top:4px">
+      <button class="btn" onclick="startPlaceTranslation()" style="flex:1;font-size:11px" id="btn-place-tr">🎯 Placer</button>
+      <button class="btn" onclick="clearTranslation()" style="flex:1;font-size:11px">Supprimer</button>
+    </div>
+  </div>
+
+  <div class="panel-section" id="section-rotation">
+    <h3>Rotation <span class="help-tip">?<span class="tip-text">Anime la forme en la faisant tourner sur elle-même. Non disponible pour les Cri et Téléporteurs.<br><b>Départ</b> : délai avant le début (secondes).<br><b>Durée</b> : temps pour compléter la rotation (secondes).<br><b>Degrés</b> : angle total de rotation (360 = tour complet).<br><b>Boucle</b> : Aucune (une seule fois), Boucle (répète), Aller-retour.</span></span></h3>
+    <div class="field"><label>Départ</label><input type="number" id="rot-start" placeholder="sec" step="0.1" onchange="updateTransform()"> <span style="font-size:10px;color:var(--text2)">sec</span></div>
+    <div class="field"><label>Durée</label><input type="number" id="rot-dur" placeholder="sec" step="0.1" onchange="updateTransform()"> <span style="font-size:10px;color:var(--text2)">sec</span></div>
+    <div class="field"><label>Degrés</label><input type="number" id="rot-deg" step="1" onchange="updateTransform()"> <span style="font-size:10px;color:var(--text2)">°</span></div>
+    <div class="field">
+      <label>Boucle</label>
+      <select id="rot-loop" onchange="updateTransform()">
+        <option value="0">Aucune</option>
+        <option value="1">Boucle</option>
+        <option value="2">Aller-retour</option>
+      </select>
+    </div>
+    <button class="btn full" onclick="clearRotation()" style="margin-top:4px;font-size:11px">Supprimer la rotation</button>
+  </div>
+
+  <div class="panel-section" style="margin-top:auto">
+    <div style="display:flex;gap:4px;margin-bottom:4px">
+      <button class="btn" onclick="mirrorSelected('h')" style="flex:1;font-size:11px" title="Symétrie horizontale">↔ Miroir H</button>
+      <button class="btn" onclick="mirrorSelected('v')" style="flex:1;font-size:11px" title="Symétrie verticale">↕ Miroir V</button>
+    </div>
+    <button class="btn full" onclick="duplicateSelected()" style="margin-bottom:4px">📋 Dupliquer</button>
+    <button class="btn full" onclick="deleteSelected()" style="border-color:var(--accent);color:var(--accent)">🗑 Supprimer</button>
+  </div>
+</div>
+
+</div>
+
+<!-- HELP MODAL -->
+<div class="help-modal-overlay" id="help-overlay" onclick="if(event.target===this)closeHelp()">
+  <div class="help-modal">
+    <div class="help-modal-title" id="help-title"></div>
+    <div class="help-modal-body" id="help-body"></div>
+    <button class="help-modal-close" onclick="closeHelp()">Compris</button>
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2 id="modal-title"></h2>
+    <textarea id="modal-xml" spellcheck="false"></textarea>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal()">Annuler</button>
+      <button class="btn primary" id="modal-btn" onclick="modalAction()">Charger</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+// CONSTANTS & STATE
+// ═══════════════════════════════════════════════════════
+const MW = 800, MH = 400;
+let nextId = 1;
+
+// ── Game sprites (base64 encoded PNGs) ──
+const SPRITES = {};
+function loadSprite(name, src, x, y, w, h) {
+  const img = new Image();
+  img.src = src;
+  SPRITES[name] = { img, x, y, w, h };
+  img.onload = () => render();
+}
+
+// PasserelleDepart: x=0, y=353, 182x43 (scaled to ~55x27 in game coords)
+loadSprite('passerelle',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAALYAAAArCAYAAADVCHKZAAACMUlEQVR4nO3dYXHbMByG8Se9ACiDhcE2BiuDQRiEQQiEQOgYZAw0Bi4DjYGHYPvwj1Y1ad3GkmpJfn93vfbOyZ0+PFVkOXE2lPMB2E0c//bK8TUZgaHA837NG077NtHfH4Hbs+NfTr93XEZ4C3wqMSjJxp9+XuKufK4Hfs8fzvvZAH+XHoR0Y8BeRWKey3+Q+JVmAP7kHojClhp5nn+lca889v/SS2FLL0Ys/CPgt8uORSSJw0J2wEN8QGFLSwYsYgf8nHrg9vRg7W5IjeLlheOKHZktl2exIkvyWMhHEvbhtRSRGoQZ+UimfXKFLUsYeRpz9n1shS3vxfMY8+SJXw4KW0ryWMz3nG3HlaawJTfPQjHHFLbk4Kkg5pjClrnCCeCBSmKOKWy51j0WdPETwBRbpt+vKwJ2dfpAoa25EhS2vGTEZucDjXy4IKaliJxzWNA/lh1GGoUt0Pjs/ByFvW4e2NPQ2vmtFPY6OWx2rnpnI4XCXhdH50EHCnsdHLbkWM19RhR23xwrCzpQ2H0agO+sMOhAHw3ry4gF3fQedA43zLtnnNRnj92GbvVRg5YiPXDYLF3dO+yWdLP0AGS2sOy4Q1Ff0IzdpgH4SieXv0vQjN2ePfAZRT1JM3Y7Ruxm+d1fNcxBM3YbBuwm/Ir6jTRj1y9E3dW770rTjF03RT2Twq6Xok4QvlxJ32pQF0WdSDN2fcLuh6JOoLDro8vjGWgpUheHXSKXRAq7Ljt0RTGLf+JKgNkmZrGwAAAAAElFTkSuQmCC',
+  0, 353, 182, 43);
+
+// BlocDroit: x=693, y=44, 107x349
+loadSprite('bloc',
+  'data:image/png;base64,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',
+  693, 44, 107, 356);
+
+// Infirmerie: x=740, y=7, 26x41
+loadSprite('infirmerie',
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAABoAAAApCAYAAAArpDnNAAABjUlEQVRYhd2XMY6CQBSGP4glJttiZTW2m3iA5QCS1dZmL6QXsLKyxSPoAcjazlRWWq4JB9gtCEbDzLCQYQr/hDCZN/A9Hu89hoBSX8CYut6BN828SSfgppnfVoNv4LfH4yN88LxPjcPmNe5AHz5IA5NhNpuRpilxHDMajbRriqJAKUWe50gpOR6PRlAAfAL7x8koijgcDq29TtOU6/WqM20HaBJhOp1qb7RfLO7jeZbV7EIIE0ifDCZQkyaTidGmBdkusMnmYAgkbS7oKmPWwfM7abLNs4woiozrnRasJeRuO8PlcjGCBui7NlBP4ab0NqQ2UIauBrJ41lna0Nk8s0lK2Q6U53knkM3BgPLD9CQhBLvdrjVouVyilPo/CMqirQpXCMFwOKytqbo3lFGwRcIIci1fX9gXBNWa6mq1AmC9Xneup0ZQHMckSQKAUorNZuMM9BS6oiiQUt7PLhUAP7Tb9nZSSLlf7l2+su7kC3TzWrDnlwN5ka8nOvkC+c0689+TY5APnStQ3/3u/AdMI5CaiTSJHwAAAABJRU5ErkJggg==',
+  740, 7, 26, 41);
+
+// TextBloc: x=695, y=60, 106x327
+loadSprite('textbloc',
+  'data:image/png;base64,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',
+  695, 60, 106, 327);
+
+// CRI sprite: 30x4
+const CRI_IMG = new Image();
+CRI_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAB4AAAAECAYAAACZfY9fAAAALklEQVQYlWNkYGD4zzAAgIWBgYGBobSUvrZ2d0Ms5nn6nK72fmFgYGBkGKCgBgDZgwbVNw6JdAAAAABJRU5ErkJggg==';
+CRI_IMG.onload = () => render();
+
+// Teleporteur sprite: 35x6
+const TP_IMG = new Image();
+TP_IMG.src = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACMAAAAGCAYAAABJuCfcAAACqElEQVQokY2SW0hTAQCG/3PZztnOzpnb2nRzyVKXzQsSBmoqDkqhSISoHsp66CEIejDoodfoLaKHbtBD9BAYJEiQJVbgiMDWykum5GUquZy4s6VHd27u0oNgBBX9L//LDx8//0/gLwoGu8pDzscLvsQ1w2KoNTMEoLt26joU0resuESdldPrKTaFnFdCxi8A8ZzD/J5mWYPFYs752Ww6R85wD0exJ4TyPsqXcRCip0toyZ5RB8Jh6U9MYps8RCMUBDAlmIvcjQQZrUqLB6LoHDd7D3vry/LzgRTr8/yY3Lyf9BtIZdz1JnBvXZ8XBGjHGWADQCkAfckNfc1uKlUbTH5rjZ8sKPY5s7s3F+LM577Y7aXVhn72rYsxe/rKUmLzB+jR2Yq2Htv067vLAAgCyNPAFOnyx1pTCaeWqXOt8BdNz122AjZ6lTx6I9Kv9zAMxoQygCkFeABiAl4JMAKYFwQADABtx8Az21V1DYHEGDRGgol/cnDG18BX3bpwLju/HJi4otZBtZY4kpH1JMKjtromjqpoKuGSS8Nb6ZRdMgvWfe5pKu1sY06RNirqWRxwv8zIKdUQd9BsgW5cy28JooYaBhA1DTpocJoETtNAQ4IgydgLGUWyhCJZAg0ZOuMExRVBw6piqm3mxErutDWpf9WfZgdUgXcqG/YJwKKq8UMK8Wuxk1RV0OecDF2WjHa+w+0e7RSXlRfWs9ULBqvp5oljxupHz2Yi6uzIENESXNJjk/sd45+MlsScXUoV91JQwJKyI+baBRAKi00+33HpfLdeyHMfZ+0PVkZWB71fxtpjcw3faGrxeyY9+a7+SIQKD9yRfv/Mv0WhfZDFK+8WUJm1FqJEZmHL52DJGEEjD3InSSJjTmDDvo6VGCDCO0yisRHoJZT/4OAnjRcWrfSWpgkAAAAASUVORK5CYII=';
+TP_IMG.onload = () => render();
+
+// ── Overlay / Calque modèle ──
+let overlayImg = null;
+
+function loadOverlay(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    overlayImg = new Image();
+    overlayImg.onload = () => {
+      // Auto-fit to map dimensions
+      document.getElementById('overlay-w').value = MW;
+      document.getElementById('overlay-h').value = Math.round(MW * overlayImg.height / overlayImg.width);
+      document.getElementById('overlay-x').value = 0;
+      document.getElementById('overlay-y').value = 0;
+      document.getElementById('show-overlay').checked = true;
+      render();
+    };
+    overlayImg.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function fitOverlay() {
+  if (!overlayImg) return;
+  document.getElementById('overlay-x').value = 0;
+  document.getElementById('overlay-y').value = 0;
+  document.getElementById('overlay-w').value = MW;
+  document.getElementById('overlay-h').value = MH;
+  render();
+}
+
+function clearOverlay() {
+  overlayImg = null;
+  document.getElementById('overlay-file').value = '';
+  render();
+}
+
+const S = {
+  tool: 'select',
+  shapes: [],     // flat list of shapes
+  groups: [],     // [{id, shapeIds, x, y}]
+  selId: null,    // selected shape id
+  selIds: [],     // multi-select
+  zoom: 1.5, panX: 60, panY: 60,
+  isPanning: false, panStart: null,
+  isDrawing: false, drawStart: null, drawEnd: null,
+  polyPts: [],
+  undoStack: [], redoStack: [],
+  mouse: {x:0, y:0},
+  dragOff: null,
+  dragHandle: null, // null | 'start' | 'end' | 'cp' | 'tl' | 'tr' | 'bl' | 'br' | 'body'
+  selRect: null, // {x1,y1,x2,y2} rectangle selection in map coords
+};
+
+// ═══════════════════════════════════════════════════════
+// CANVAS
+// ═══════════════════════════════════════════════════════
+const canvas = document.getElementById('editor-canvas');
+const ctx = canvas.getContext('2d');
+const wrap = document.getElementById('canvas-wrap');
+
+function resize() {
+  canvas.width = wrap.clientWidth;
+  canvas.height = wrap.clientHeight;
+  render();
+}
+window.addEventListener('resize', resize);
+resize();
+
+function m2s(x,y) { return { x: x*S.zoom+S.panX, y: y*S.zoom+S.panY }; }
+function s2m(x,y) { return { x: (x-S.panX)/S.zoom, y: (y-S.panY)/S.zoom }; }
+
+// Constrain to horizontal, vertical, or 45° when Shift is held
+function constrainAngle(start, end) {
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const absDx = Math.abs(dx);
+  const absDy = Math.abs(dy);
+
+  // Determine closest axis: horizontal, vertical, or 45°
+  if (absDx > absDy * 2) {
+    // Horizontal
+    return { x: end.x, y: start.y };
+  } else if (absDy > absDx * 2) {
+    // Vertical
+    return { x: start.x, y: end.y };
+  } else {
+    // 45° diagonal
+    const dist = Math.max(absDx, absDy);
+    return { x: start.x + dist * Math.sign(dx), y: start.y + dist * Math.sign(dy) };
+  }
+}
+
+function snap(v) {
+  if (!document.getElementById('snap-grid').checked) return Math.round(v);
+  const step = parseInt(document.getElementById('snap-step').value)||5;
+  return Math.round(v/step)*step;
+}
+
+// Snap to nearest shape point (x or y independently)
+function snapToShapes(x, y, excludeId) {
+  if (!document.getElementById('snap-shapes').checked) return {x: snap(x), y: snap(y)};
+  const tol = parseInt(document.getElementById('snap-tolerance').value)||8;
+  let sx = snap(x), sy = snap(y);
+  let bestDx = tol+1, bestDy = tol+1;
+
+  for (const s of S.shapes) {
+    if (s.id === excludeId) continue;
+    const pts = getShapeSnapPoints(s);
+    for (const p of pts) {
+      const dx = Math.abs(x - p.x);
+      const dy = Math.abs(y - p.y);
+      if (dx < bestDx) { bestDx = dx; sx = p.x; }
+      if (dy < bestDy) { bestDy = dy; sy = p.y; }
+    }
+  }
+  // Grid snap as fallback if no shape point was close
+  if (bestDx > tol) sx = snap(x);
+  if (bestDy > tol) sy = snap(y);
+  return {x: sx, y: sy};
+}
+
+function getShapeSnapPoints(s) {
+  const pts = [{x:s.x, y:s.y}];
+  switch(s.type) {
+    case 'line':
+      pts.push({x:s.x+s.dx, y:s.y+s.dy});
+      // Midpoint
+      pts.push({x:s.x+s.dx/2, y:s.y+s.dy/2});
+      break;
+    case 'curve':
+      pts.push({x:s.x+s.dx, y:s.y+s.dy});
+      pts.push({x:s.x+s.cpx, y:s.y+s.cpy});
+      break;
+    case 'rect':
+    case 'ellipse':
+      pts.push({x:s.x+s.w, y:s.y});
+      pts.push({x:s.x, y:s.y+s.h});
+      pts.push({x:s.x+s.w, y:s.y+s.h});
+      // Center
+      pts.push({x:s.x+s.w/2, y:s.y+s.h/2});
+      break;
+    case 'polygon':
+      if (s.points) {
+        for (const p of s.points) pts.push({x:s.x+p.x, y:s.y+p.y});
+      }
+      break;
+    case 'tp':
+      pts.push({x:s.toX, y:s.toY});
+      break;
+  }
+  if (s.translation) pts.push({x:s.translation.tx, y:s.translation.ty});
+  return pts;
+}
+
+// ═══════════════════════════════════════════════════════
+// TOOLS
+// ═══════════════════════════════════════════════════════
+function setTool(t) {
+  S.tool = t;
+  S.isDrawing = false; S.drawStart = S.drawEnd = null; S.polyPts = [];
+  document.querySelectorAll('.tool-btn').forEach(b => b.classList.toggle('active', b.dataset.tool===t));
+  canvas.style.cursor = t==='select' ? 'default' : 'crosshair';
+  render();
+}
+
+// ═══════════════════════════════════════════════════════
+// SHAPE MANAGEMENT
+// ═══════════════════════════════════════════════════════
+function addShape(type, props) {
+  const defThick = Math.max(1, parseInt(document.getElementById('default-thick').value) || 3);
+  const defFill = document.getElementById('default-fill').checked ? 1 : 0;
+  const extra = {};
+  if (type === 'rect' || type === 'ellipse' || type === 'polygon') extra.fill = defFill;
+  const shape = { id: nextId++, type, thick: defThick, groupId: null, translation: null, rotation: null, ...extra, ...props };
+  pushUndo();
+  S.shapes.push(shape);
+  S.selId = shape.id;
+  S.selIds = [shape.id];
+  updateUI();
+  render();
+  return shape;
+}
+
+function getShape(id) { return S.shapes.find(s=>s.id===id); }
+function getSel() { return getShape(S.selId); }
+
+function deleteSelected() {
+  if (!S.selId) return;
+  pushUndo();
+  S.shapes = S.shapes.filter(s=>s.id!==S.selId);
+  // Remove from groups
+  for (const g of S.groups) g.shapeIds = g.shapeIds.filter(id=>id!==S.selId);
+  S.groups = S.groups.filter(g=>g.shapeIds.length>0);
+  S.selId = null; S.selIds = [];
+  updateUI(); render();
+}
+
+function duplicateSelected() {
+  const shapes = S.selIds.map(id => getShape(id)).filter(Boolean);
+  if (shapes.length === 0) { const s = getSel(); if (s) shapes.push(s); }
+  if (shapes.length === 0) return;
+  pushUndo();
+  const newIds = [];
+  for (const orig of shapes) {
+    const copy = JSON.parse(JSON.stringify(orig));
+    copy.id = nextId++;
+    copy.x += 15; copy.y += 15;
+    copy.groupId = null;
+    S.shapes.push(copy);
+    newIds.push(copy.id);
+  }
+  S.selId = newIds[0]; S.selIds = newIds;
+  updateUI(); render();
+}
+
+function mirrorSelected(axis) {
+  if (S.selIds.length === 0) return;
+  pushUndo();
+
+  const shapes = S.selIds.map(id => getShape(id)).filter(Boolean);
+
+  // Calculate bounding box center of selection
+  let minX=Infinity, maxX=-Infinity, minY=Infinity, maxY=-Infinity;
+  for (const s of shapes) {
+    const b = getShapeBounds(s);
+    if (b.minX < minX) minX = b.minX;
+    if (b.maxX > maxX) maxX = b.maxX;
+    if (b.minY < minY) minY = b.minY;
+    if (b.maxY > maxY) maxY = b.maxY;
+  }
+  const cx = (minX + maxX) / 2;
+  const cy = (minY + maxY) / 2;
+
+  // Create mirrored copies
+  const newIds = [];
+  for (const orig of shapes) {
+    const s = JSON.parse(JSON.stringify(orig));
+    s.id = nextId++;
+    s.groupId = null;
+
+    if (axis === 'h') {
+      s.x = 2 * cx - s.x;
+      if (s.type === 'line' || s.type === 'curve') {
+        s.dx = -s.dx;
+        if (s.cpx != null) s.cpx = -s.cpx;
+        s.x -= s.dx || 0;
+      } else if (s.type === 'rect' || s.type === 'ellipse') {
+        s.x -= s.w;
+      } else if (s.type === 'polygon' && s.points) {
+        for (const p of s.points) p.x = -p.x;
+      } else if (s.type === 'tp') {
+        s.toX = 2 * cx - s.toX;
+      }
+    } else {
+      s.y = 2 * cy - s.y;
+      if (s.type === 'line' || s.type === 'curve') {
+        s.dy = -s.dy;
+        if (s.cpy != null) s.cpy = -s.cpy;
+        s.y -= s.dy || 0;
+      } else if (s.type === 'rect' || s.type === 'ellipse') {
+        s.y -= s.h;
+      } else if (s.type === 'polygon' && s.points) {
+        for (const p of s.points) p.y = -p.y;
+      } else if (s.type === 'tp') {
+        s.toY = 2 * cy - s.toY;
+      }
+    }
+
+    S.shapes.push(s);
+    newIds.push(s.id);
+  }
+
+  // Select the new mirrored shapes
+  S.selIds = newIds;
+  S.selId = newIds[newIds.length - 1];
+  updateUI(); render();
+}
+
+function getShapeBounds(s) {
+  let minX=s.x, maxX=s.x, minY=s.y, maxY=s.y;
+  switch(s.type) {
+    case 'line':
+    case 'curve':
+      maxX = Math.max(s.x, s.x + (s.dx||0));
+      minX = Math.min(s.x, s.x + (s.dx||0));
+      maxY = Math.max(s.y, s.y + (s.dy||0));
+      minY = Math.min(s.y, s.y + (s.dy||0));
+      break;
+    case 'rect':
+    case 'ellipse':
+      maxX = s.x + s.w; maxY = s.y + s.h;
+      if (s.w < 0) { minX = s.x + s.w; maxX = s.x; }
+      if (s.h < 0) { minY = s.y + s.h; maxY = s.y; }
+      break;
+    case 'polygon':
+      if (s.points) {
+        for (const p of s.points) {
+          minX = Math.min(minX, s.x + p.x);
+          maxX = Math.max(maxX, s.x + p.x);
+          minY = Math.min(minY, s.y + p.y);
+          maxY = Math.max(maxY, s.y + p.y);
+        }
+      }
+      break;
+    case 'tp':
+      minX = Math.min(s.x, s.toX); maxX = Math.max(s.x, s.toX);
+      minY = Math.min(s.y, s.toY); maxY = Math.max(s.y, s.toY);
+      break;
+  }
+  return {minX, maxX, minY, maxY};
+}
+
+// ═══════════════════════════════════════════════════════
+// GROUPS
+// ═══════════════════════════════════════════════════════
+function groupSelected() {
+  if (S.selIds.length < 2) return;
+  pushUndo();
+  // Find bounding position
+  const shapes = S.selIds.map(id=>getShape(id)).filter(Boolean);
+  const minX = Math.min(...shapes.map(s=>s.x));
+  const minY = Math.min(...shapes.map(s=>s.y));
+  const gid = nextId++;
+  const group = { id: gid, shapeIds: [...S.selIds], x: minX, y: minY };
+  // Remove shapes from any existing group
+  for (const s of shapes) {
+    for (const g of S.groups) g.shapeIds = g.shapeIds.filter(id=>id!==s.id);
+    s.groupId = gid;
+  }
+  S.groups = S.groups.filter(g=>g.shapeIds.length>0);
+  S.groups.push(group);
+  updateUI(); render();
+}
+
+function ungroupSelected() {
+  const sel = getSel();
+  if (!sel || !sel.groupId) return;
+  pushUndo();
+  const g = S.groups.find(g=>g.id===sel.groupId);
+  if (!g) return;
+
+  // Remove only the selected shape(s) from the group
+  for (const sid of S.selIds) {
+    const s = getShape(sid);
+    if (s && s.groupId === g.id) {
+      s.groupId = null;
+      g.shapeIds = g.shapeIds.filter(id => id !== sid);
+    }
+  }
+
+  // If group has 0 or 1 shape left, dissolve it
+  if (g.shapeIds.length <= 1) {
+    for (const sid of g.shapeIds) {
+      const s = getShape(sid);
+      if (s) s.groupId = null;
+    }
+    S.groups = S.groups.filter(gr => gr.id !== g.id);
+  }
+
+  updateUI(); render();
+}
+
+function groupAll() {
+  if (S.shapes.length < 2) return;
+  pushUndo();
+  const minX = Math.min(...S.shapes.map(s=>s.x));
+  const minY = Math.min(...S.shapes.map(s=>s.y));
+  const gid = nextId++;
+  // Remove all existing groups
+  S.groups = [{ id: gid, shapeIds: S.shapes.map(s=>s.id), x: minX, y: minY }];
+  for (const s of S.shapes) s.groupId = gid;
+  updateUI(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// HIT TESTING
+// ═══════════════════════════════════════════════════════
+function hitTest(mx, my) {
+  for (let i=S.shapes.length-1; i>=0; i--) {
+    if (shapeHit(S.shapes[i], mx, my)) return S.shapes[i];
+  }
+  return null;
+}
+
+// Check if mouse hits a handle on the selected shape — returns handle type or null
+function hitHandle(s, mx, my) {
+  const hr = 8 / S.zoom; // handle radius in map coords
+  function near(px, py) { return Math.abs(mx-px)<hr && Math.abs(my-py)<hr; }
+
+  switch(s.type) {
+    case 'line':
+      if (near(s.x, s.y)) return 'start';
+      if (near(s.x+s.dx, s.y+s.dy)) return 'end';
+      break;
+    case 'curve':
+      if (near(s.x+s.cpx, s.y+s.cpy)) return 'cp';
+      if (near(s.x, s.y)) return 'start';
+      if (near(s.x+s.dx, s.y+s.dy)) return 'end';
+      break;
+    case 'rect':
+    case 'ellipse': {
+      const x2=s.x+s.w, y2=s.y+s.h;
+      if (near(s.x, s.y)) return 'tl';
+      if (near(x2, s.y)) return 'tr';
+      if (near(s.x, y2)) return 'bl';
+      if (near(x2, y2)) return 'br';
+      break;
+    }
+    case 'polygon':
+      if (s.points) {
+        for (let i=0; i<s.points.length; i++) {
+          if (near(s.x+s.points[i].x, s.y+s.points[i].y)) return 'pt_'+i;
+        }
+      }
+      break;
+    case 'tp':
+      if (near(s.toX, s.toY)) return 'tp_dest';
+      if (near(s.x, s.y)) return 'tp_src';
+      break;
+  }
+
+  // Translation handle — any shape with a translation
+  if (s.translation && near(s.translation.tx, s.translation.ty)) return 'tr_dest';
+
+  return null;
+}
+
+function shapeHit(s, mx, my) {
+  const t = s.thick || 6;
+  const margin = Math.max(t/2, 6);
+  switch(s.type) {
+    case 'line': {
+      // Line from (x,y) to (x+dx, y+dy)
+      const x2=s.x+s.dx, y2=s.y+s.dy;
+      return distToSegment(mx,my,s.x,s.y,x2,y2) < margin;
+    }
+    case 'curve': {
+      // Check proximity to quadratic bezier
+      const x2=s.x+s.dx, y2=s.y+s.dy;
+      const cx=s.x+s.cpx, cy=s.y+s.cpy;
+      for (let t=0;t<=1;t+=0.05) {
+        const px=(1-t)*(1-t)*s.x+2*(1-t)*t*cx+t*t*x2;
+        const py=(1-t)*(1-t)*s.y+2*(1-t)*t*cy+t*t*y2;
+        if (Math.abs(mx-px)<margin && Math.abs(my-py)<margin) return true;
+      }
+      return false;
+    }
+    case 'rect': {
+      // Rect from (x,y) with width w, height h
+      const rx=s.x, ry=s.y, rw=s.w, rh=s.h;
+      const left=Math.min(rx, rx+rw)-margin, right=Math.max(rx, rx+rw)+margin;
+      const top=Math.min(ry, ry+rh)-margin, bottom=Math.max(ry, ry+rh)+margin;
+      return mx>=left && mx<=right && my>=top && my<=bottom;
+    }
+    case 'ellipse': {
+      // Ellipse from (x,y) with w,h — center is (x+w/2, y+h/2)
+      const cx=s.x+s.w/2, cy=s.y+s.h/2;
+      const rx=Math.abs(s.w)/2+margin, ry=Math.abs(s.h)/2+margin;
+      return ((mx-cx)*(mx-cx))/(rx*rx) + ((my-cy)*(my-cy))/(ry*ry) <= 1;
+    }
+    case 'polygon': {
+      if (!s.points||s.points.length<2) return false;
+      for (const p of s.points) {
+        if (Math.abs(mx-(s.x+p.x))<margin && Math.abs(my-(s.y+p.y))<margin) return true;
+      }
+      // Point-in-polygon
+      const pts = s.points.map(p=>({x:s.x+p.x, y:s.y+p.y}));
+      let inside=false;
+      for (let i=0,j=pts.length-1;i<pts.length;j=i++) {
+        if ((pts[i].y>my)!==(pts[j].y>my) && mx<(pts[j].x-pts[i].x)*(my-pts[i].y)/(pts[j].y-pts[i].y)+pts[i].x)
+          inside=!inside;
+      }
+      return inside;
+    }
+    case 'cri':
+      return Math.sqrt((mx-s.x)**2+(my-s.y)**2) < 15;
+    case 'tp':
+      return Math.sqrt((mx-s.x)**2+(my-s.y)**2) < 12 ||
+             Math.sqrt((mx-s.toX)**2+(my-s.toY)**2) < 12;
+  }
+  return false;
+}
+
+function distToSegment(px,py,x1,y1,x2,y2) {
+  const dx=x2-x1, dy=y2-y1;
+  const len2=dx*dx+dy*dy;
+  if (len2===0) return Math.sqrt((px-x1)**2+(py-y1)**2);
+  let t=((px-x1)*dx+(py-y1)*dy)/len2;
+  t=Math.max(0,Math.min(1,t));
+  return Math.sqrt((px-(x1+t*dx))**2+(py-(y1+t*dy))**2);
+}
+
+// ═══════════════════════════════════════════════════════
+// UNDO/REDO
+// ═══════════════════════════════════════════════════════
+function pushUndo() {
+  S.undoStack.push(JSON.stringify({shapes:S.shapes, groups:S.groups}));
+  if (S.undoStack.length>60) S.undoStack.shift();
+  S.redoStack = [];
+}
+function undo() {
+  if (!S.undoStack.length) return;
+  S.redoStack.push(JSON.stringify({shapes:S.shapes, groups:S.groups}));
+  const d = JSON.parse(S.undoStack.pop());
+  S.shapes=d.shapes; S.groups=d.groups;
+  S.selId=null; S.selIds=[];
+  updateUI(); render();
+}
+function redo() {
+  if (!S.redoStack.length) return;
+  S.undoStack.push(JSON.stringify({shapes:S.shapes, groups:S.groups}));
+  const d = JSON.parse(S.redoStack.pop());
+  S.shapes=d.shapes; S.groups=d.groups;
+  S.selId=null; S.selIds=[];
+  updateUI(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// MOUSE EVENTS
+// ═══════════════════════════════════════════════════════
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+canvas.addEventListener('mousedown', e => {
+  const r=canvas.getBoundingClientRect();
+  const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  const mp=s2m(sx,sy);
+
+  // Pan
+  if (e.button===1 || e.button===2 || (e.button===0 && e.altKey)) {
+    S.isPanning=true; S.panStart={x:e.clientX-S.panX, y:e.clientY-S.panY};
+    canvas.style.cursor='grabbing'; return;
+  }
+  if (e.button!==0) return;
+
+  // Place translation destination
+  if (placingTranslation) {
+    const sel=getSel();
+    if (sel) {
+      pushUndo();
+      const tx=snap(mp.x), ty=snap(mp.y);
+      if (!sel.translation) {
+        sel.translation = { start:0, dur:2, tx, ty, loop:0 };
+      } else {
+        sel.translation.tx=tx; sel.translation.ty=ty;
+      }
+      updatePropsPanel(); render();
+    }
+    placingTranslation = false;
+    canvas.style.cursor = S.tool==='select' ? 'default' : 'crosshair';
+    document.getElementById('btn-place-tr').textContent='🎯 Placer';
+    document.getElementById('btn-place-tr').style.borderColor='';
+    document.getElementById('btn-place-tr').style.color='';
+    return;
+  }
+
+  // Select
+  if (S.tool==='select') {
+    // Check if clicking the multi-selection center handle
+    if (S.selIds.length > 1) {
+      const shapes = S.selIds.map(id=>getShape(id)).filter(Boolean);
+      let bMinX=Infinity, bMaxX=-Infinity, bMinY=Infinity, bMaxY=-Infinity;
+      for (const s of shapes) {
+        const b=getShapeBounds(s);
+        if(b.minX<bMinX) bMinX=b.minX; if(b.maxX>bMaxX) bMaxX=b.maxX;
+        if(b.minY<bMinY) bMinY=b.minY; if(b.maxY>bMaxY) bMaxY=b.maxY;
+      }
+      const cxm=(bMinX+bMaxX)/2, cym=(bMinY+bMaxY)/2;
+      if (Math.sqrt((mp.x-cxm)**2+(mp.y-cym)**2) < 12/S.zoom) {
+        pushUndo();
+        S.dragHandle = 'body';
+        S.selId = S.selIds[0];
+        S.dragOff = {x:mp.x-getShape(S.selIds[0]).x, y:mp.y-getShape(S.selIds[0]).y};
+        canvas.style.cursor='grabbing';
+        render(); return;
+      }
+    }
+
+    // Check if clicking a handle on the already-selected shape
+    const sel = getSel();
+    if (sel) {
+      const handle = hitHandle(sel, mp.x, mp.y);
+      if (handle) {
+        pushUndo();
+        S.dragHandle = handle;
+        canvas.style.cursor='crosshair';
+        updateUI(); render(); return;
+      }
+    }
+
+    const hit = hitTest(mp.x, mp.y);
+    if (hit) {
+      const multiSelect = e.ctrlKey || e.metaKey; // Ctrl (Win) or Cmd (Mac)
+      if (multiSelect) {
+        // Toggle selection on this shape
+        if (S.selIds.includes(hit.id)) {
+          S.selIds = S.selIds.filter(id => id !== hit.id);
+          S.selId = S.selIds.length > 0 ? S.selIds[S.selIds.length-1] : null;
+        } else {
+          S.selIds.push(hit.id);
+          S.selId = hit.id;
+        }
+        S.dragHandle = null; S.dragOff = null;
+      } else {
+        if (S.selId!==hit.id) pushUndo();
+        S.selId=hit.id;
+        if (hit.groupId) {
+          const g=S.groups.find(g=>g.id===hit.groupId);
+          S.selIds = g ? [...g.shapeIds] : [hit.id];
+        } else {
+          S.selIds=[hit.id];
+        }
+        S.dragHandle = 'body';
+        S.dragOff={x:mp.x-hit.x, y:mp.y-hit.y};
+        canvas.style.cursor='grabbing';
+      }
+    } else {
+      // Start rectangle selection
+      S.selId=null; S.selIds=[]; S.dragOff=null; S.dragHandle=null;
+      S.selRect={x1:mp.x, y1:mp.y, x2:mp.x, y2:mp.y};
+    }
+    updateUI(); render(); return;
+  }
+
+  // Cri — single click
+  if (S.tool==='cri') {
+    addShape('cri', { x:snap(mp.x), y:snap(mp.y), visible:false });
+    return;
+  }
+
+  // Téléporteur — single click (destination editable in properties)
+  if (S.tool==='tp') {
+    addShape('tp', { x:snap(mp.x), y:snap(mp.y), toX:snap(mp.x)+50, toY:snap(mp.y)-50 });
+    return;
+  }
+
+  // Polygon — click to add points
+  if (S.tool==='polygon') {
+    const px=snap(mp.x), py=snap(mp.y);
+    if (S.polyPts.length>0) {
+      const f=S.polyPts[0];
+      if (Math.abs(px-f.x)<12 && Math.abs(py-f.y)<12 && S.polyPts.length>=3) {
+        finishPolygon(); return;
+      }
+    }
+    S.polyPts.push({x:px,y:py});
+    render(); return;
+  }
+
+  // Start drawing
+  S.isDrawing=true;
+  const drawSnap=snapToShapes(mp.x, mp.y, null);
+  S.drawStart={x:drawSnap.x, y:drawSnap.y};
+});
+
+canvas.addEventListener('mousemove', e => {
+  const r=canvas.getBoundingClientRect();
+  const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  const mp=s2m(sx,sy);
+  S.mouse=mp;
+  document.getElementById('info-pos').textContent=`X: ${Math.round(mp.x)}  Y: ${Math.round(mp.y)}`;
+
+  if (S.isPanning) {
+    S.panX=e.clientX-S.panStart.x; S.panY=e.clientY-S.panStart.y;
+    render(); return;
+  }
+
+  // Rectangle selection drag
+  if (S.tool==='select' && S.selRect) {
+    S.selRect.x2=mp.x; S.selRect.y2=mp.y;
+    render(); return;
+  }
+
+  // Cursor feedback for handles
+  if (S.tool==='select' && !S.dragHandle) {
+    const sel=getSel();
+    if (sel && hitHandle(sel, mp.x, mp.y)) {
+      canvas.style.cursor='crosshair';
+    } else {
+      canvas.style.cursor='default';
+    }
+  }
+
+  // Drag handles or shapes
+  if (S.tool==='select' && S.dragHandle && S.selId) {
+    const sel=getSel();
+    if (!sel) return;
+    const snapped=snapToShapes(mp.x, mp.y, sel.id);
+    const mx=snapped.x, my=snapped.y;
+
+    if (S.dragHandle === 'body') {
+      // Move whole shape(s)
+      if (S.dragOff) {
+        const bodySnap=snapToShapes(mp.x-S.dragOff.x, mp.y-S.dragOff.y, sel.id);
+        const nx=bodySnap.x, ny=bodySnap.y;
+        const ddx=nx-sel.x, ddy=ny-sel.y;
+        for (const sid of S.selIds) {
+          const s=getShape(sid);
+          if (s) { s.x+=ddx; s.y+=ddy; }
+        }
+      }
+    } else if (S.dragHandle === 'start') {
+      // Move start point — shift dx/dy to keep end point fixed
+      if (sel.type==='line' || sel.type==='curve') {
+        const oldEndX=sel.x+sel.dx, oldEndY=sel.y+sel.dy;
+        sel.x=mx; sel.y=my;
+        sel.dx=oldEndX-mx; sel.dy=oldEndY-my;
+        if (sel.type==='curve') {
+          // Adjust cp to keep it relative to new start
+          // cpx/cpy are relative to start, recalculate
+          const oldCpX=sel.x+sel.cpx, oldCpY=sel.y+sel.cpy;
+        }
+      }
+    } else if (S.dragHandle === 'end') {
+      // Move end point
+      if (sel.type==='line' || sel.type==='curve') {
+        sel.dx=mx-sel.x; sel.dy=my-sel.y;
+      }
+    } else if (S.dragHandle === 'cp') {
+      // Move control point (curves)
+      if (sel.type==='curve') {
+        sel.cpx=mx-sel.x; sel.cpy=my-sel.y;
+      }
+    } else if (S.dragHandle === 'tl') {
+      // Top-left corner — resize rect/ellipse
+      const x2=sel.x+sel.w, y2=sel.y+sel.h;
+      sel.x=mx; sel.y=my; sel.w=x2-mx; sel.h=y2-my;
+    } else if (S.dragHandle === 'tr') {
+      const y2=sel.y+sel.h;
+      sel.w=mx-sel.x; sel.y=my; sel.h=y2-my;
+    } else if (S.dragHandle === 'bl') {
+      const x2=sel.x+sel.w;
+      sel.x=mx; sel.w=x2-mx; sel.h=my-sel.y;
+    } else if (S.dragHandle === 'br') {
+      sel.w=mx-sel.x; sel.h=my-sel.y;
+    } else if (S.dragHandle === 'tp_dest') {
+      sel.toX=mx; sel.toY=my;
+    } else if (S.dragHandle === 'tp_src') {
+      sel.x=mx; sel.y=my;
+    } else if (S.dragHandle === 'tr_dest') {
+      // Drag translation destination
+      if (!sel.translation) {
+        sel.translation = { start:0, dur:2, tx:mx, ty:my, loop:0 };
+      } else {
+        sel.translation.tx=mx; sel.translation.ty=my;
+      }
+    } else if (S.dragHandle.startsWith('pt_')) {
+      const idx=parseInt(S.dragHandle.split('_')[1]);
+      if (sel.points && sel.points[idx]) {
+        sel.points[idx].x=mx-sel.x;
+        sel.points[idx].y=my-sel.y;
+      }
+    }
+    updatePropsPanel(); render(); return;
+  }
+
+  if (S.isDrawing && S.drawStart) {
+    let endSnap=snapToShapes(mp.x, mp.y, null);
+    if (e.shiftKey) endSnap = constrainAngle(S.drawStart, endSnap);
+    S.drawEnd={x:endSnap.x, y:endSnap.y};
+    render(); return;
+  }
+
+  if (S.tool==='polygon' && S.polyPts.length>0) {
+    S.drawEnd={x:snap(mp.x), y:snap(mp.y)};
+    render();
+  }
+});
+
+canvas.addEventListener('mouseup', e => {
+  if (S.isPanning) {
+    S.isPanning=false; canvas.style.cursor=S.tool==='select'?'default':'crosshair'; return;
+  }
+  if (S.tool==='select') {
+    // Finalize rectangle selection
+    if (S.selRect) {
+      const r = S.selRect;
+      const rx1=Math.min(r.x1,r.x2), ry1=Math.min(r.y1,r.y2);
+      const rx2=Math.max(r.x1,r.x2), ry2=Math.max(r.y1,r.y2);
+      // Only select if rectangle is big enough (not just a click)
+      if (Math.abs(rx2-rx1) > 3 || Math.abs(ry2-ry1) > 3) {
+        const selected = [];
+        for (const s of S.shapes) {
+          const b = getShapeBounds(s);
+          // Shape is inside if its bounds overlap with selection rect
+          if (b.maxX >= rx1 && b.minX <= rx2 && b.maxY >= ry1 && b.minY <= ry2) {
+            selected.push(s.id);
+          }
+        }
+        S.selIds = selected;
+        S.selId = selected.length > 0 ? selected[selected.length-1] : null;
+        updateUI();
+      }
+      S.selRect = null;
+      render();
+      return;
+    }
+    S.dragOff=null; S.dragHandle=null; canvas.style.cursor='default'; return;
+  }
+
+  if (S.isDrawing && S.drawStart && S.drawEnd) {
+    const a=S.drawStart, b=S.drawEnd;
+    const dx=b.x-a.x, dy=b.y-a.y;
+    if (Math.abs(dx)>2 || Math.abs(dy)>2) {
+      switch(S.tool) {
+        case 'line':
+          addShape('line', {x:a.x, y:a.y, dx:dx, dy:dy});
+          break;
+        case 'curve':
+          addShape('curve', {x:a.x, y:a.y, dx:dx, dy:dy, cpx:Math.round(dx/2), cpy:Math.round(-Math.abs(dy||dx)/2)});
+          break;
+        case 'rect':
+          addShape('rect', {x:Math.min(a.x,b.x), y:Math.min(a.y,b.y), w:Math.abs(dx), h:Math.abs(dy)});
+          break;
+        case 'ellipse':
+          addShape('ellipse', {x:Math.min(a.x,b.x), y:Math.min(a.y,b.y), w:Math.abs(dx), h:Math.abs(dy)});
+          break;
+      }
+    }
+  }
+  S.isDrawing=false; S.drawStart=S.drawEnd=null; render();
+});
+
+canvas.addEventListener('dblclick', ()=>{
+  if (S.tool==='polygon' && S.polyPts.length>=3) finishPolygon();
+});
+
+function finishPolygon() {
+  const pts=S.polyPts;
+  if (pts.length < 3) { S.polyPts=[]; render(); return; }
+  // First clicked point = shape position (x,y), which is the implicit (0,0) in the game
+  const ox=pts[0].x, oy=pts[0].y;
+  // Points are relative to the shape position
+  // Start with (0,0) as the game does via unshift, then add remaining points
+  const points=[{x:0, y:0}];
+  for (let i=1; i<pts.length; i++) {
+    points.push({x:pts[i].x-ox, y:pts[i].y-oy});
+  }
+  addShape('polygon', {x:ox, y:oy, points});
+  S.polyPts=[]; render();
+}
+
+// Wheel zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  const r=canvas.getBoundingClientRect();
+  const sx=e.clientX-r.left, sy=e.clientY-r.top;
+  const before=s2m(sx,sy);
+  S.zoom = Math.max(0.3, Math.min(5, S.zoom * (e.deltaY<0?1.1:0.9)));
+  const after=m2s(before.x,before.y);
+  S.panX+=sx-after.x; S.panY+=sy-after.y;
+  document.getElementById('info-zoom').textContent=`Zoom: ${Math.round(S.zoom*100)}%`;
+  render();
+}, {passive:false});
+
+// Keyboard
+let clipboard = null; // for copy/paste
+
+document.addEventListener('keydown', e => {
+  if (e.target.tagName==='INPUT'||e.target.tagName==='TEXTAREA'||e.target.tagName==='SELECT') return;
+  if (e.key==='Delete'||e.key==='Backspace') { deleteSelected(); e.preventDefault(); }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='z') { undo(); e.preventDefault(); }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='y') { redo(); e.preventDefault(); }
+  if ((e.ctrlKey||e.metaKey)&&e.key==='d') { duplicateSelected(); e.preventDefault(); }
+  // Ctrl+C — copy selected shapes
+  if ((e.ctrlKey||e.metaKey)&&e.key==='c') {
+    if (S.selIds.length > 0) {
+      clipboard = S.selIds.map(id => getShape(id)).filter(Boolean).map(s => JSON.parse(JSON.stringify(s)));
+      e.preventDefault();
+    }
+  }
+  // Ctrl+V — paste copied shapes
+  if ((e.ctrlKey||e.metaKey)&&e.key==='v') {
+    if (clipboard && clipboard.length > 0) {
+      pushUndo();
+      const newIds = [];
+      for (const orig of clipboard) {
+        const copy = JSON.parse(JSON.stringify(orig));
+        copy.id = nextId++;
+        copy.x += 15; copy.y += 15;
+        copy.groupId = null;
+        S.shapes.push(copy);
+        newIds.push(copy.id);
+      }
+      // Update clipboard offset for next paste
+      clipboard.forEach(s => { s.x += 15; s.y += 15; });
+      S.selIds = newIds;
+      S.selId = newIds[newIds.length-1];
+      updateUI(); render();
+      e.preventDefault();
+    }
+  }
+  // Ctrl+G — group selected
+  if ((e.ctrlKey||e.metaKey)&&e.key==='g') { groupSelected(); e.preventDefault(); }
+  if (e.key==='Escape') { setTool('select'); S.polyPts=[]; }
+  if (!e.ctrlKey && !e.metaKey) {
+    if (e.key==='v') setTool('select');
+    if (e.key==='l') setTool('line');
+    if (e.key==='c') setTool('curve');
+    if (e.key==='r') setTool('rect');
+    if (e.key==='e') setTool('ellipse');
+    if (e.key==='p') setTool('polygon');
+    if (e.key==='k') setTool('cri');
+    if (e.key==='t') setTool('tp');
+  }
+});
+
+function zoomIn() { S.zoom=Math.min(5,S.zoom*1.2); document.getElementById('info-zoom').textContent=`Zoom: ${Math.round(S.zoom*100)}%`; render(); }
+function zoomOut() { S.zoom=Math.max(0.3,S.zoom/1.2); document.getElementById('info-zoom').textContent=`Zoom: ${Math.round(S.zoom*100)}%`; render(); }
+function zoomReset() { S.zoom=1.5; S.panX=60; S.panY=60; document.getElementById('info-zoom').textContent='Zoom: 150%'; render(); }
+
+// ═══════════════════════════════════════════════════════
+// RENDERING
+// ═══════════════════════════════════════════════════════
+function render() {
+  const w=canvas.width, h=canvas.height;
+  ctx.clearRect(0,0,w,h);
+  ctx.fillStyle='#3a3d56'; ctx.fillRect(0,0,w,h);
+
+  // Map bounds — medium grey, easy on the eyes
+  const tl=m2s(0,0), br=m2s(MW,MH);
+  ctx.fillStyle='#6b7080'; ctx.fillRect(tl.x,tl.y,br.x-tl.x,br.y-tl.y);
+  ctx.strokeStyle='#8e92a8'; ctx.lineWidth=1; ctx.strokeRect(tl.x,tl.y,br.x-tl.x,br.y-tl.y);
+
+  // Grid
+  if (document.getElementById('show-grid').checked) {
+    const gs=parseInt(document.getElementById('grid-size').value)||20;
+    ctx.strokeStyle='rgba(0,0,0,0.08)'; ctx.lineWidth=1;
+    for (let gx=0;gx<=MW;gx+=gs) {
+      const p1=m2s(gx,0), p2=m2s(gx,MH);
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    }
+    for (let gy=0;gy<=MH;gy+=gs) {
+      const p1=m2s(0,gy), p2=m2s(MW,gy);
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+    }
+  }
+
+  // ── Overlay / Calque modèle ──
+  if (overlayImg && document.getElementById('show-overlay').checked) {
+    const ox = parseFloat(document.getElementById('overlay-x').value) || 0;
+    const oy = parseFloat(document.getElementById('overlay-y').value) || 0;
+    const ow = parseFloat(document.getElementById('overlay-w').value) || MW;
+    const oh = parseFloat(document.getElementById('overlay-h').value) || MH;
+    const opacity = parseFloat(document.getElementById('overlay-opacity').value) || 0.3;
+    const p1 = m2s(ox, oy);
+    ctx.globalAlpha = opacity;
+    ctx.drawImage(overlayImg, p1.x, p1.y, ow * S.zoom, oh * S.zoom);
+    ctx.globalAlpha = 1;
+  }
+
+  // ── Fixed game elements (sprites) ──
+
+  // Death zone (below y=380) — faint red
+  const dz1=m2s(0,380), dz2=m2s(693,MH);
+  ctx.fillStyle='rgba(200,30,30,0.08)';
+  ctx.fillRect(dz1.x, dz1.y, dz2.x-dz1.x, dz2.y-dz1.y);
+  ctx.strokeStyle='rgba(200,30,30,0.25)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+  ctx.beginPath(); ctx.moveTo(dz1.x,dz1.y); ctx.lineTo(dz2.x,dz1.y); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(180,30,30,0.5)'; ctx.font=`${Math.max(7,9*S.zoom)}px sans-serif`;
+  ctx.textAlign='left'; ctx.textBaseline='top';
+  ctx.fillText('ZONE DE MORT (y>380)', dz1.x+4, dz1.y+2);
+
+  // Draw sprites
+  function drawSprite(name) {
+    const sp = SPRITES[name];
+    if (!sp || !sp.img.complete) return;
+    const p1 = m2s(sp.x, sp.y);
+    ctx.drawImage(sp.img, p1.x, p1.y, sp.w * S.zoom, sp.h * S.zoom);
+  }
+
+  // Bloc droit (collision layer)
+  drawSprite('bloc');
+  // TextBloc (foreground overlay)
+  drawSprite('textbloc');
+  // Infirmerie
+  drawSprite('infirmerie');
+  // Passerelle de départ
+  drawSprite('passerelle');
+
+  // Right block death zone (x>740, y>70)
+  const rd1=m2s(740,70), rd2=m2s(MW,MH);
+  ctx.fillStyle='rgba(200,30,30,0.06)';
+  ctx.fillRect(rd1.x, rd1.y, rd2.x-rd1.x, rd2.y-rd1.y);
+
+  // Player spawn indicator (x=60, y=320)
+  const spp=m2s(60,320);
+  ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=1;
+  ctx.setLineDash([3,3]);
+  ctx.beginPath(); ctx.arc(spp.x,spp.y,6*S.zoom,0,Math.PI*2); ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.fillStyle='rgba(0,0,0,0.6)'; ctx.font=`${Math.max(5,7*S.zoom)}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='bottom';
+  ctx.fillText('SPAWN', spp.x, spp.y-8*S.zoom);
+  // Stickman silhouette
+  ctx.strokeStyle='rgba(0,0,0,0.6)'; ctx.lineWidth=1.5;
+  const ss=S.zoom*0.8;
+  ctx.beginPath(); ctx.arc(spp.x, spp.y-8*ss, 3*ss, 0, Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(spp.x, spp.y-5*ss); ctx.lineTo(spp.x, spp.y+4*ss); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(spp.x-4*ss, spp.y-1*ss); ctx.lineTo(spp.x+4*ss, spp.y-1*ss); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(spp.x, spp.y+4*ss); ctx.lineTo(spp.x-3*ss, spp.y+10*ss); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(spp.x, spp.y+4*ss); ctx.lineTo(spp.x+3*ss, spp.y+10*ss); ctx.stroke();
+
+  // Origin marker
+  const orig=m2s(0,0);
+  ctx.fillStyle='rgba(233,69,96,0.4)'; ctx.beginPath(); ctx.arc(orig.x,orig.y,4,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='rgba(233,69,96,0.6)'; ctx.font='9px sans-serif'; ctx.textAlign='left'; ctx.textBaseline='alphabetic';
+  ctx.fillText('0,0',orig.x+6,orig.y-4);
+
+  // ── User shapes ──
+  for (const s of S.shapes) drawShape(s, S.selIds.includes(s.id));
+
+  // Draw preview
+  if (S.isDrawing && S.drawStart && S.drawEnd) drawPreview();
+
+  // Polygon in progress
+  if (S.polyPts.length>0) {
+    ctx.strokeStyle='rgba(83,216,251,0.8)'; ctx.lineWidth=2; ctx.setLineDash([5,5]);
+    ctx.beginPath();
+    const f=m2s(S.polyPts[0].x,S.polyPts[0].y);
+    ctx.moveTo(f.x,f.y);
+    for (let i=1;i<S.polyPts.length;i++) { const p=m2s(S.polyPts[i].x,S.polyPts[i].y); ctx.lineTo(p.x,p.y); }
+    if (S.drawEnd) { const p=m2s(S.drawEnd.x,S.drawEnd.y); ctx.lineTo(p.x,p.y); }
+    ctx.stroke(); ctx.setLineDash([]);
+    for (const pt of S.polyPts) {
+      const p=m2s(pt.x,pt.y);
+      ctx.fillStyle='#53d8fb'; ctx.beginPath(); ctx.arc(p.x,p.y,4,0,Math.PI*2); ctx.fill();
+    }
+  }
+
+  // Rectangle selection overlay
+  if (S.selRect) {
+    const p1=m2s(Math.min(S.selRect.x1,S.selRect.x2), Math.min(S.selRect.y1,S.selRect.y2));
+    const p2=m2s(Math.max(S.selRect.x1,S.selRect.x2), Math.max(S.selRect.y1,S.selRect.y2));
+    ctx.fillStyle='rgba(83,216,251,0.08)';
+    ctx.fillRect(p1.x, p1.y, p2.x-p1.x, p2.y-p1.y);
+    ctx.strokeStyle='rgba(83,216,251,0.5)'; ctx.lineWidth=1; ctx.setLineDash([4,3]);
+    ctx.strokeRect(p1.x, p1.y, p2.x-p1.x, p2.y-p1.y);
+    ctx.setLineDash([]);
+  }
+
+  // Multi-selection center handle (move all selected)
+  if (S.selIds.length > 1 && !S.selRect) {
+    const shapes = S.selIds.map(id=>getShape(id)).filter(Boolean);
+    let bMinX=Infinity, bMaxX=-Infinity, bMinY=Infinity, bMaxY=-Infinity;
+    for (const s of shapes) {
+      const b=getShapeBounds(s);
+      if(b.minX<bMinX) bMinX=b.minX; if(b.maxX>bMaxX) bMaxX=b.maxX;
+      if(b.minY<bMinY) bMinY=b.minY; if(b.maxY>bMaxY) bMaxY=b.maxY;
+    }
+    const cxm=(bMinX+bMaxX)/2, cym=(bMinY+bMaxY)/2;
+    const cp=m2s(cxm, cym);
+    const hr=7*S.zoom;
+    // Bounding box outline
+    const bp1=m2s(bMinX,bMinY), bp2=m2s(bMaxX,bMaxY);
+    ctx.strokeStyle='rgba(233,69,96,0.3)'; ctx.lineWidth=1; ctx.setLineDash([4,4]);
+    ctx.strokeRect(bp1.x, bp1.y, bp2.x-bp1.x, bp2.y-bp1.y);
+    ctx.setLineDash([]);
+    // Center handle
+    ctx.fillStyle='rgba(233,69,96,0.2)';
+    ctx.beginPath(); ctx.arc(cp.x,cp.y,hr,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#e94560'; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.arc(cp.x,cp.y,hr,0,Math.PI*2); ctx.stroke();
+    // Cross inside
+    ctx.strokeStyle='#e94560'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(cp.x-hr*0.4,cp.y); ctx.lineTo(cp.x+hr*0.4,cp.y); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(cp.x,cp.y-hr*0.4); ctx.lineTo(cp.x,cp.y+hr*0.4); ctx.stroke();
+  }
+
+  // Snap guides — show alignment lines when snapping to shapes
+  if (document.getElementById('snap-shapes').checked && (S.dragHandle || S.isDrawing)) {
+    const tol = parseInt(document.getElementById('snap-tolerance').value)||8;
+    const cursorX = S.isDrawing && S.drawEnd ? S.drawEnd.x : S.mouse.x;
+    const cursorY = S.isDrawing && S.drawEnd ? S.drawEnd.y : S.mouse.y;
+    const sel = getSel();
+    const excludeId = sel ? sel.id : null;
+
+    for (const s of S.shapes) {
+      if (s.id === excludeId) continue;
+      const pts = getShapeSnapPoints(s);
+      for (const pt of pts) {
+        if (Math.abs(cursorX - pt.x) < tol) {
+          // Vertical guide
+          const gx = m2s(pt.x, 0);
+          ctx.strokeStyle='rgba(74,222,128,0.3)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+          ctx.beginPath(); ctx.moveTo(gx.x, 0); ctx.lineTo(gx.x, canvas.height); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+        if (Math.abs(cursorY - pt.y) < tol) {
+          // Horizontal guide
+          const gy = m2s(0, pt.y);
+          ctx.strokeStyle='rgba(74,222,128,0.3)'; ctx.lineWidth=1; ctx.setLineDash([2,3]);
+          ctx.beginPath(); ctx.moveTo(0, gy.y); ctx.lineTo(canvas.width, gy.y); ctx.stroke();
+          ctx.setLineDash([]);
+        }
+      }
+    }
+  }
+}
+
+function drawShape(s, sel) {
+  ctx.save();
+  // Game-accurate: shapes are black, selected = red highlight
+  const gameCol = '#000000';
+  const selCol = '#e94560';
+  const col = sel ? selCol : gameCol;
+  const fillCol = sel ? 'rgba(233,69,96,0.25)' : 'rgba(0,0,0,0.9)';
+  // Thickness scaled to zoom
+  const rawThick = s.thick != null ? s.thick : 3;
+  const lw = Math.max(1, rawThick * S.zoom);
+
+  switch(s.type) {
+    case 'line': {
+      const p1=m2s(s.x,s.y), p2=m2s(s.x+s.dx,s.y+s.dy);
+      ctx.strokeStyle=col; ctx.lineWidth=lw;
+      ctx.lineCap = 'round'; // Game: LINE_CAP.ROUND
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+      if (sel) { drawHandle(p1.x,p1.y); drawHandle(p2.x,p2.y); }
+      break;
+    }
+    case 'curve': {
+      const p1=m2s(s.x,s.y), p2=m2s(s.x+s.dx,s.y+s.dy);
+      const cp=m2s(s.x+s.cpx,s.y+s.cpy);
+      ctx.strokeStyle=col; ctx.lineWidth=lw;
+      ctx.lineCap = 'round'; // Game: LINE_CAP.ROUND
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.quadraticCurveTo(cp.x,cp.y,p2.x,p2.y); ctx.stroke();
+      if (sel) {
+        drawHandle(p1.x,p1.y); drawHandle(p2.x,p2.y);
+        ctx.fillStyle='#53d8fb'; ctx.beginPath(); ctx.arc(cp.x,cp.y,4,0,Math.PI*2); ctx.fill();
+        ctx.strokeStyle='rgba(83,216,251,0.3)'; ctx.lineWidth=1;
+        ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(cp.x,cp.y); ctx.lineTo(p2.x,p2.y); ctx.stroke();
+      }
+      break;
+    }
+    case 'rect': {
+      // Game: drawRect(w<0?w:0, h<0?h:0, |w|, |h|) — handle negative dims
+      const ox = s.w < 0 ? s.x + s.w : s.x;
+      const oy = s.h < 0 ? s.y + s.h : s.y;
+      const aw = Math.abs(s.w), ah = Math.abs(s.h);
+      const p=m2s(ox,oy);
+      const sw=aw*S.zoom, sh=ah*S.zoom;
+      ctx.lineJoin = 'miter'; // Game: default PixiJS MITER
+      ctx.lineCap = 'butt';
+      if (s.fill) { ctx.fillStyle=fillCol; ctx.fillRect(p.x,p.y,sw,sh); }
+      ctx.strokeStyle=col; ctx.lineWidth=lw;
+      ctx.strokeRect(p.x,p.y,sw,sh);
+      if (sel) {
+        drawHandle(p.x,p.y); drawHandle(p.x+sw,p.y);
+        drawHandle(p.x,p.y+sh); drawHandle(p.x+sw,p.y+sh);
+      }
+      break;
+    }
+    case 'ellipse': {
+      // Game: drawEllipse(w/2, h/2, |w|/2, |h|/2) — center at (x+w/2, y+h/2)
+      const cx=s.x+s.w/2, cy=s.y+s.h/2;
+      const pc=m2s(cx,cy);
+      const rx=Math.max(0.5, Math.abs(s.w)/2*S.zoom);
+      const ry=Math.max(0.5, Math.abs(s.h)/2*S.zoom);
+      ctx.lineJoin = 'miter'; // Game: default PixiJS
+      ctx.lineCap = 'butt';
+      if (s.fill) { ctx.fillStyle=fillCol; ctx.beginPath(); ctx.ellipse(pc.x,pc.y,rx,ry,0,0,Math.PI*2); ctx.fill(); }
+      ctx.strokeStyle=col; ctx.lineWidth=lw;
+      ctx.beginPath(); ctx.ellipse(pc.x,pc.y,rx,ry,0,0,Math.PI*2); ctx.stroke();
+      if (sel) {
+        const p=m2s(s.x,s.y);
+        drawHandle(p.x,p.y); drawHandle(p.x+s.w*S.zoom,p.y+s.h*S.zoom);
+      }
+      break;
+    }
+    case 'polygon': {
+      if (!s.points||s.points.length<2) break;
+      ctx.strokeStyle=col; ctx.lineWidth=lw;
+      ctx.lineJoin = 'round'; // Game: LINE_JOIN.ROUND
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      const f=m2s(s.x+s.points[0].x,s.y+s.points[0].y);
+      ctx.moveTo(f.x,f.y);
+      for (let i=1;i<s.points.length;i++) { const p=m2s(s.x+s.points[i].x,s.y+s.points[i].y); ctx.lineTo(p.x,p.y); }
+      ctx.closePath();
+      if (s.fill) { ctx.fillStyle=fillCol; ctx.fill('evenodd'); }
+      ctx.stroke();
+      if (sel) {
+        for (const pt of s.points) { const p=m2s(s.x+pt.x,s.y+pt.y); drawHandle(p.x,p.y); }
+      }
+      break;
+    }
+    case 'cri': {
+      const p=m2s(s.x,s.y);
+      // Sprite: 30x4 native, render at game scale
+      const cw=30*S.zoom, ch=4*S.zoom;
+
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      if (CRI_IMG.complete) {
+        ctx.globalAlpha = s.visible ? 1 : 0.4;
+        ctx.drawImage(CRI_IMG, -cw/2, -ch/2, cw, ch);
+        ctx.globalAlpha = 1;
+      }
+      // Selection outline
+      if (sel) {
+        ctx.strokeStyle='#e94560'; ctx.lineWidth=2;
+        ctx.strokeRect(-cw/2-2, -ch/2-2, cw+4, ch+4);
+      }
+      ctx.restore();
+
+      // Visibility indicator
+      if (s.visible) {
+        ctx.fillStyle='#4ade80'; ctx.font=`${Math.max(7,8*S.zoom)}px sans-serif`;
+        ctx.textAlign='center'; ctx.textBaseline='bottom';
+        ctx.fillText('V', p.x, p.y-ch/2-4);
+      }
+      break;
+    }
+  }
+
+  // Teleporter rendering (after switch, so it's drawn for tp type)
+  if (s.type === 'tp') {
+    const src=m2s(s.x,s.y);
+    const dst=m2s(s.toX,s.toY);
+    // Sprite: 35x6 native
+    const tw=35*S.zoom, th=6*S.zoom;
+
+    // Source — draw sprite
+    if (TP_IMG.complete) {
+      ctx.drawImage(TP_IMG, src.x-tw/2, src.y-th/2, tw, th);
+    }
+
+    // Destination — draw sprite (slightly transparent)
+    if (TP_IMG.complete) {
+      ctx.globalAlpha=0.6;
+      ctx.drawImage(TP_IMG, dst.x-tw/2, dst.y-th/2, tw, th);
+      ctx.globalAlpha=1;
+    }
+
+    // Arrow from source to destination
+    ctx.strokeStyle=sel?'rgba(233,69,96,0.5)':'rgba(130,80,255,0.3)';
+    ctx.lineWidth=1.5; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(src.x,src.y); ctx.lineTo(dst.x,dst.y); ctx.stroke();
+    ctx.setLineDash([]);
+
+    // Arrow head
+    const angle=Math.atan2(dst.y-src.y, dst.x-src.x);
+    const ahl=6*S.zoom;
+    ctx.fillStyle=sel?'rgba(233,69,96,0.5)':'rgba(130,80,255,0.4)';
+    ctx.beginPath();
+    ctx.moveTo(dst.x-tw/2*Math.cos(angle), dst.y-tw/2*Math.sin(angle));
+    ctx.lineTo(dst.x-tw/2*Math.cos(angle)-ahl*Math.cos(angle-0.4), dst.y-tw/2*Math.sin(angle)-ahl*Math.sin(angle-0.4));
+    ctx.lineTo(dst.x-tw/2*Math.cos(angle)-ahl*Math.cos(angle+0.4), dst.y-tw/2*Math.sin(angle)-ahl*Math.sin(angle+0.4));
+    ctx.closePath(); ctx.fill();
+
+    // Labels
+    ctx.font=`${Math.max(6,7*S.zoom)}px sans-serif`; ctx.textAlign='center'; ctx.textBaseline='bottom';
+    ctx.fillStyle=sel?'#e94560':'#8250ff';
+    ctx.fillText('TP', src.x, src.y-th/2-3);
+    ctx.fillStyle=sel?'#e94560':'#50c882';
+    ctx.fillText('→', dst.x, dst.y-th/2-3);
+
+    // Selection outlines + handles
+    if (sel) {
+      ctx.strokeStyle='#e94560'; ctx.lineWidth=1.5;
+      ctx.strokeRect(src.x-tw/2-2, src.y-th/2-2, tw+4, th+4);
+      ctx.strokeRect(dst.x-tw/2-2, dst.y-th/2-2, tw+4, th+4);
+      drawHandle(src.x, src.y);
+      drawHandle(dst.x, dst.y);
+    }
+  }
+
+  // Translation indicator — draggable handle
+  if (s.translation) {
+    const p=m2s(s.x,s.y);
+    const t=m2s(s.translation.tx,s.translation.ty);
+    // Dashed line
+    ctx.strokeStyle='rgba(83,216,251,0.4)'; ctx.lineWidth=1.5; ctx.setLineDash([5,4]);
+    ctx.beginPath(); ctx.moveTo(p.x,p.y); ctx.lineTo(t.x,t.y); ctx.stroke();
+    ctx.setLineDash([]);
+    // Arrow head
+    const ang=Math.atan2(t.y-p.y, t.x-p.x);
+    const al=8*S.zoom;
+    ctx.fillStyle='rgba(83,216,251,0.5)';
+    ctx.beginPath();
+    ctx.moveTo(t.x, t.y);
+    ctx.lineTo(t.x-al*Math.cos(ang-0.4), t.y-al*Math.sin(ang-0.4));
+    ctx.lineTo(t.x-al*Math.cos(ang+0.4), t.y-al*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fill();
+    // Destination circle
+    ctx.fillStyle='rgba(83,216,251,0.2)';
+    ctx.beginPath(); ctx.arc(t.x,t.y,6*S.zoom,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle='#53d8fb'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(t.x,t.y,6*S.zoom,0,Math.PI*2); ctx.stroke();
+    if (sel) {
+      ctx.fillStyle='#53d8fb'; ctx.font=`${Math.max(6,7*S.zoom)}px sans-serif`;
+      ctx.textAlign='center'; ctx.textBaseline='bottom';
+      ctx.fillText('T', t.x, t.y-7*S.zoom);
+      drawHandle(t.x, t.y);
+    }
+  }
+
+  // Rotation indicator
+  if (s.rotation) {
+    const p=m2s(s.x,s.y);
+    ctx.strokeStyle='rgba(251,146,60,0.5)'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.arc(p.x,p.y,15,0,s.rotation.deg*Math.PI/180); ctx.stroke();
+  }
+
+  ctx.restore();
+}
+
+function drawHandle(x,y) {
+  ctx.fillStyle='#e94560';
+  ctx.fillRect(x-3,y-3,6,6);
+}
+
+function drawPreview() {
+  ctx.save();
+  ctx.strokeStyle='rgba(83,216,251,0.6)'; ctx.fillStyle='rgba(83,216,251,0.08)';
+  ctx.lineWidth=1; ctx.setLineDash([5,5]);
+  const p1=m2s(S.drawStart.x,S.drawStart.y), p2=m2s(S.drawEnd.x,S.drawEnd.y);
+  switch(S.tool) {
+    case 'line':
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.lineTo(p2.x,p2.y); ctx.stroke(); break;
+    case 'curve': {
+      const dx=S.drawEnd.x-S.drawStart.x, dy=S.drawEnd.y-S.drawStart.y;
+      const cp=m2s(S.drawStart.x+dx/2, S.drawStart.y-Math.abs(dy||dx)/2);
+      ctx.beginPath(); ctx.moveTo(p1.x,p1.y); ctx.quadraticCurveTo(cp.x,cp.y,p2.x,p2.y); ctx.stroke(); break;
+    }
+    case 'rect': {
+      const x=Math.min(p1.x,p2.x), y=Math.min(p1.y,p2.y);
+      ctx.strokeRect(x,y,Math.abs(p2.x-p1.x),Math.abs(p2.y-p1.y));
+      ctx.fillRect(x,y,Math.abs(p2.x-p1.x),Math.abs(p2.y-p1.y)); break;
+    }
+    case 'ellipse': {
+      const cx=(p1.x+p2.x)/2, cy=(p1.y+p2.y)/2;
+      const rx=Math.abs(p2.x-p1.x)/2, ry=Math.abs(p2.y-p1.y)/2;
+      ctx.beginPath(); ctx.ellipse(cx,cy,Math.max(1,rx),Math.max(1,ry),0,0,Math.PI*2); ctx.fill(); ctx.stroke(); break;
+    }
+  }
+  ctx.setLineDash([]); ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════
+// UI
+// ═══════════════════════════════════════════════════════
+const TYPE_LABELS = {line:'Ligne',curve:'Courbe',rect:'Rect',ellipse:'Ellipse',polygon:'Polygone',cri:'Cri',tp:'TP'};
+
+function updateUI() {
+  document.getElementById('shape-count').textContent=`Formes : ${S.shapes.length} / 220`;
+  document.getElementById('shape-list-count').textContent=`(${S.shapes.length})`;
+
+  const list=document.getElementById('shape-list');
+  list.innerHTML='';
+  for (const s of S.shapes) {
+    const el=document.createElement('div');
+    el.className='shape-item'+(S.selIds.includes(s.id)?' selected':'');
+    const grp = s.groupId ? `<span style="color:var(--accent2);font-size:9px">G</span> ` : '';
+    el.innerHTML=`${grp}<span class="st">${TYPE_LABELS[s.type]||s.type}</span> #${s.id}`;
+    el.onclick=(e)=>{
+      if (e.ctrlKey || e.metaKey) {
+        // Multi-select toggle
+        if (S.selIds.includes(s.id)) {
+          S.selIds = S.selIds.filter(id => id !== s.id);
+          S.selId = S.selIds.length > 0 ? S.selIds[S.selIds.length-1] : null;
+        } else {
+          S.selIds.push(s.id);
+          S.selId = s.id;
+        }
+      } else {
+        S.selId=s.id; S.selIds=[s.id];
+      }
+      updateUI(); render();
+    };
+    list.appendChild(el);
+  }
+  updatePropsPanel();
+}
+
+function updatePropsPanel() {
+  const sel=getSel();
+  document.getElementById('props-none').style.display=sel?'none':'block';
+  document.getElementById('props-form').style.display=sel?'block':'none';
+
+  // Hide translation/rotation for cri and tp
+  const noTransform = sel && (sel.type === 'cri' || sel.type === 'tp');
+  document.getElementById('section-translation').style.display = noTransform ? 'none' : '';
+  document.getElementById('section-rotation').style.display = noTransform ? 'none' : '';
+
+  if (!sel) return;
+
+  document.getElementById('prop-type').textContent=TYPE_LABELS[sel.type]||sel.type;
+  document.getElementById('prop-x').value=Math.round(sel.x);
+  document.getElementById('prop-y').value=Math.round(sel.y);
+
+  const dims=document.getElementById('props-dims');
+  const curveExtra=document.getElementById('props-curve-extra');
+  const thickDiv=document.getElementById('props-thickness');
+  const fillDiv=document.getElementById('props-fill');
+  const criDiv=document.getElementById('props-cri-extra');
+  const tpDiv=document.getElementById('props-tp-extra');
+
+  // Reset visibility
+  dims.style.display='none';
+  curveExtra.style.display='none';
+  fillDiv.style.display='none';
+  criDiv.style.display='none';
+  tpDiv.style.display='none';
+  thickDiv.style.display='flex';
+
+  switch(sel.type) {
+    case 'line':
+      dims.style.display='block';
+      document.getElementById('prop-w').value=Math.round(sel.dx||0);
+      document.getElementById('prop-h').value=Math.round(sel.dy||0);
+      break;
+    case 'curve':
+      dims.style.display='block';
+      document.getElementById('prop-w').value=Math.round(sel.dx||0);
+      document.getElementById('prop-h').value=Math.round(sel.dy||0);
+      curveExtra.style.display='block';
+      document.getElementById('prop-cpx').value=Math.round(sel.cpx||0);
+      document.getElementById('prop-cpy').value=Math.round(sel.cpy||0);
+      break;
+    case 'rect':
+    case 'ellipse':
+      dims.style.display='block';
+      document.getElementById('prop-w').value=Math.round(sel.w||0);
+      document.getElementById('prop-h').value=Math.round(sel.h||0);
+      fillDiv.style.display='flex';
+      document.getElementById('prop-fill').value=sel.fill?'1':'0';
+      break;
+    case 'polygon':
+      break;
+    case 'cri':
+      thickDiv.style.display='none';
+      criDiv.style.display='block';
+      document.getElementById('prop-cri-vis').checked=!!sel.visible;
+      break;
+    case 'tp':
+      thickDiv.style.display='none';
+      tpDiv.style.display='block';
+      document.getElementById('prop-tp-tox').value=Math.round(sel.toX||0);
+      document.getElementById('prop-tp-toy').value=Math.round(sel.toY||0);
+      break;
+  }
+
+  document.getElementById('prop-thick').value=sel.thick!=null?sel.thick:3;
+
+  // Translation — display absolute destination coords
+  const tr=sel.translation;
+  document.getElementById('tr-start').value=tr?tr.start:'';
+  document.getElementById('tr-dur').value=tr?tr.dur:'';
+  document.getElementById('tr-tx').value=tr?Math.round(tr.tx):'';
+  document.getElementById('tr-ty').value=tr?Math.round(tr.ty):'';
+  document.getElementById('tr-loop').value=tr?tr.loop:'0';
+
+  // Rotation
+  const ro=sel.rotation;
+  document.getElementById('rot-start').value=ro?ro.start:'';
+  document.getElementById('rot-dur').value=ro?ro.dur:'';
+  document.getElementById('rot-deg').value=ro?ro.deg:'';
+  document.getElementById('rot-loop').value=ro?ro.loop:'0';
+}
+
+function updateProp() {
+  const sel=getSel(); if (!sel) return;
+  pushUndo();
+  sel.x=parseFloat(document.getElementById('prop-x').value)||0;
+  sel.y=parseFloat(document.getElementById('prop-y').value)||0;
+  sel.thick=Math.max(1, parseInt(document.getElementById('prop-thick').value)||3);
+
+  switch(sel.type) {
+    case 'line':
+      sel.dx=parseFloat(document.getElementById('prop-w').value)||0;
+      sel.dy=parseFloat(document.getElementById('prop-h').value)||0;
+      break;
+    case 'curve':
+      sel.dx=parseFloat(document.getElementById('prop-w').value)||0;
+      sel.dy=parseFloat(document.getElementById('prop-h').value)||0;
+      sel.cpx=parseFloat(document.getElementById('prop-cpx').value)||0;
+      sel.cpy=parseFloat(document.getElementById('prop-cpy').value)||0;
+      break;
+    case 'rect': case 'ellipse':
+      sel.w=parseFloat(document.getElementById('prop-w').value)||0;
+      sel.h=parseFloat(document.getElementById('prop-h').value)||0;
+      sel.fill=parseInt(document.getElementById('prop-fill').value)||0;
+      break;
+    case 'cri':
+      sel.visible=document.getElementById('prop-cri-vis').checked;
+      break;
+    case 'tp':
+      sel.toX=parseFloat(document.getElementById('prop-tp-tox').value)||0;
+      sel.toY=parseFloat(document.getElementById('prop-tp-toy').value)||0;
+      break;
+  }
+  render();
+}
+
+function updateTransform() {
+  const sel=getSel(); if (!sel) return;
+  pushUndo();
+
+  // Translation
+  const ts=document.getElementById('tr-start').value;
+  const td=document.getElementById('tr-dur').value;
+  const tx=document.getElementById('tr-tx').value;
+  const ty=document.getElementById('tr-ty').value;
+  if (ts!==''&&td!==''&&tx!==''&&ty!=='') {
+    // Fields show absolute destination coords
+    sel.translation={start:parseFloat(ts),dur:parseFloat(td),tx:parseFloat(tx),ty:parseFloat(ty),loop:parseInt(document.getElementById('tr-loop').value)||0};
+  }
+
+  // Rotation
+  const rs=document.getElementById('rot-start').value;
+  const rd=document.getElementById('rot-dur').value;
+  const rdeg=document.getElementById('rot-deg').value;
+  if (rs!==''&&rd!==''&&rdeg!=='') {
+    sel.rotation={start:parseFloat(rs),dur:parseFloat(rd),deg:parseFloat(rdeg),loop:parseInt(document.getElementById('rot-loop').value)||0};
+  }
+  render();
+}
+
+function clearTranslation() {
+  const sel=getSel(); if (!sel) return;
+  pushUndo(); sel.translation=null; updatePropsPanel(); render();
+}
+
+let placingTranslation = false;
+function startPlaceTranslation() {
+  const sel=getSel(); if (!sel) return;
+  placingTranslation = true;
+  canvas.style.cursor='crosshair';
+  document.getElementById('btn-place-tr').textContent='🎯 Cliquez...';
+  document.getElementById('btn-place-tr').style.borderColor='var(--accent2)';
+  document.getElementById('btn-place-tr').style.color='var(--accent2)';
+}
+function clearRotation() {
+  const sel=getSel(); if (!sel) return;
+  pushUndo(); sel.rotation=null; updatePropsPanel(); render();
+}
+
+// ═══════════════════════════════════════════════════════
+// XML EXPORT
+// ═══════════════════════════════════════════════════════
+function exportXML() {
+  const saut=document.getElementById('map-saut').value;
+  const vit=document.getElementById('map-vitesse').value;
+  const grav=document.getElementById('map-gravite').value;
+
+  // Separate grouped and ungrouped shapes
+  const grouped = new Map(); // groupId -> shapes
+  const ungrouped = [];
+  for (const s of S.shapes) {
+    if (s.groupId) {
+      if (!grouped.has(s.groupId)) grouped.set(s.groupId, []);
+      grouped.get(s.groupId).push(s);
+    } else {
+      ungrouped.push(s);
+    }
+  }
+
+  let xml = `<C SAUT="${saut}" VITESSE="${vit}" GRAVITE="${grav}">`;
+
+  // Grouped shapes
+  let gXml = '';
+  for (const [gid, shapes] of grouped) {
+    const g = S.groups.find(g=>g.id===gid);
+    const gx = g ? g.x : shapes[0].x;
+    const gy = g ? g.y : shapes[0].y;
+    gXml += `<G P="${Math.round(gx)},${Math.round(gy)}">`;
+    for (const s of shapes) gXml += shapeToXml(s);
+    gXml += '</G>';
+  }
+  xml += `<G>${gXml || ''}</G>`;
+
+  // Ungrouped shapes
+  let fXml = '';
+  for (const s of ungrouped) fXml += shapeToXml(s);
+  xml += `<F>${fXml}</F>`;
+
+  xml += '</C>';
+  return xml;
+}
+
+function shapeToXml(s) {
+  let inner = '';
+  if (s.translation) {
+    const t=s.translation;
+    inner+=`<T P="${t.start},${t.dur},${Math.round(t.tx)},${Math.round(t.ty)},${t.loop}" />`;
+  }
+  if (s.rotation) {
+    const r=s.rotation;
+    inner+=`<R P="${r.start},${r.dur},${Math.round(r.deg)},${r.loop}" />`;
+  }
+
+  const th=s.thick!=null?s.thick:3;
+  switch(s.type) {
+    case 'line':
+      if (inner) return `<L P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.dx)},${Math.round(s.dy)}">${inner}</L>`;
+      return `<L P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.dx)},${Math.round(s.dy)}" />`;
+    case 'curve':
+      if (inner) return `<C P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.cpx)},${Math.round(s.cpy)},${Math.round(s.dx)},${Math.round(s.dy)}">${inner}</C>`;
+      return `<C P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.cpx)},${Math.round(s.cpy)},${Math.round(s.dx)},${Math.round(s.dy)}" />`;
+    case 'rect':
+      if (inner) return `<R P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.w)},${Math.round(s.h)},${s.fill||0}">${inner}</R>`;
+      return `<R P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.w)},${Math.round(s.h)},${s.fill||0}" />`;
+    case 'ellipse':
+      if (inner) return `<E P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.w)},${Math.round(s.h)},${s.fill||0}">${inner}</E>`;
+      return `<E P="${th},${Math.round(s.x)},${Math.round(s.y)},${Math.round(s.w)},${Math.round(s.h)},${s.fill||0}" />`;
+    case 'polygon': {
+      // Skip the first (0,0) point — the game adds it automatically via unshift
+      const exportPts = s.points.filter((p,i) => i > 0 || p.x !== 0 || p.y !== 0);
+      const z=exportPts.map(p=>`${Math.round(p.x)},${Math.round(p.y)}`).join(';');
+      return `<P P="${th},${Math.round(s.x)},${Math.round(s.y)},0,0,${s.fill||0}" Z="${z}" />`;
+    }
+    case 'cri':
+      return `<CRI P="0,${Math.round(s.x)},${Math.round(s.y)},${s.visible}" />`;
+    case 'tp':
+      return `<TP TO="${Math.round(s.toX)},${Math.round(s.toY)}" P="0,${Math.round(s.x)},${Math.round(s.y)}" />`;
+  }
+  return '';
+}
+
+// ═══════════════════════════════════════════════════════
+// XML IMPORT
+// ═══════════════════════════════════════════════════════
+function importXML(xml) {
+  try {
+    // The root <C> conflicts with curve <C>, so we need careful parsing
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(xml.trim(), 'text/xml');
+    const err = doc.querySelector('parsererror');
+    if (err) throw new Error('XML invalide');
+
+    const root = doc.documentElement;
+    if (root.tagName !== 'C') throw new Error('Balise racine <C> non trouvée');
+
+    pushUndo();
+    S.shapes = []; S.groups = []; S.selId = null; S.selIds = [];
+
+    // Map params
+    const saut=root.getAttribute('SAUT');
+    const vit=root.getAttribute('VITESSE');
+    const grav=root.getAttribute('GRAVITE');
+    if (saut) document.getElementById('map-saut').value=saut;
+    if (vit) document.getElementById('map-vitesse').value=vit;
+    if (grav) document.getElementById('map-gravite').value=grav;
+
+    // Parse groups <G> — first child G is container
+    const gContainer = root.querySelector(':scope > G');
+    if (gContainer) {
+      // Each <G P="x,y"> inside is a group
+      for (const gEl of gContainer.querySelectorAll(':scope > G[P]')) {
+        const gp = gEl.getAttribute('P').split(',').map(Number);
+        const gid = nextId++;
+        const group = { id: gid, shapeIds: [], x: gp[0], y: gp[1] };
+
+        for (const child of gEl.children) {
+          const shape = parseShapeElement(child);
+          if (shape) {
+            shape.groupId = gid;
+            S.shapes.push(shape);
+            group.shapeIds.push(shape.id);
+          }
+        }
+        if (group.shapeIds.length > 0) S.groups.push(group);
+      }
+
+      // Also parse ungrouped shapes directly in G container (without P attribute)
+      for (const child of gContainer.children) {
+        if (child.tagName === 'G' && child.hasAttribute('P')) continue; // skip groups
+        const shape = parseShapeElement(child);
+        if (shape) S.shapes.push(shape);
+      }
+    }
+
+    // Parse foreground <F>
+    const fContainer = root.querySelector(':scope > F');
+    if (fContainer) {
+      for (const child of fContainer.children) {
+        const shape = parseShapeElement(child);
+        if (shape) S.shapes.push(shape);
+      }
+    }
+
+    updateUI(); render();
+  } catch(e) {
+    alert('Erreur d\'import : ' + e.message);
+  }
+}
+
+function parseShapeElement(el) {
+  const tag = el.tagName;
+  const pAttr = el.getAttribute('P');
+  if (!pAttr && tag !== 'G') return null;
+
+  let shape = null;
+  const p = pAttr ? pAttr.split(',') : [];
+
+  switch(tag) {
+    case 'L': {
+      shape = {
+        id: nextId++, type: 'line', groupId: null,
+        thick: Math.max(1, parseInt(p[0])||3),
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        dx: parseFloat(p[3])||0, dy: parseFloat(p[4])||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'C': {
+      // Curve: P="thick,x,y,cpx,cpy,dx,dy"
+      shape = {
+        id: nextId++, type: 'curve', groupId: null,
+        thick: Math.max(1, parseInt(p[0])||3),
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        cpx: parseFloat(p[3])||0, cpy: parseFloat(p[4])||0,
+        dx: parseFloat(p[5])||0, dy: parseFloat(p[6])||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'R': {
+      // Could be Rectangle or Rotation — check parent context
+      // If inside another shape element, it's a rotation (handled separately)
+      // At top level / in F/G container, it's a rectangle
+      shape = {
+        id: nextId++, type: 'rect', groupId: null,
+        thick: Math.max(1, parseInt(p[0])||3),
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        w: parseFloat(p[3])||0, h: parseFloat(p[4])||0,
+        fill: parseInt(p[5])||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'E': {
+      shape = {
+        id: nextId++, type: 'ellipse', groupId: null,
+        thick: Math.max(1, parseInt(p[0])||3),
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        w: parseFloat(p[3])||0, h: parseFloat(p[4])||0,
+        fill: parseInt(p[5])||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'P': {
+      const zAttr = el.getAttribute('Z');
+      // Game adds (0,0) at start of path via unshift
+      const points = [{x:0, y:0}];
+      if (zAttr) {
+        zAttr.split(';').forEach(pt => {
+          const [x,y] = pt.split(',').map(Number);
+          points.push({x:x||0, y:y||0});
+        });
+      }
+      shape = {
+        id: nextId++, type: 'polygon', groupId: null,
+        thick: Math.max(1, parseInt(p[0])||3),
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        points,
+        fill: parseInt(p[5])||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'CRI': {
+      shape = {
+        id: nextId++, type: 'cri', groupId: null,
+        thick: 0,
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        visible: p[3]==='true',
+        translation: null, rotation: null
+      };
+      break;
+    }
+    case 'TP': {
+      const toAttr = el.getAttribute('TO');
+      const to = toAttr ? toAttr.split(',').map(Number) : [0,0];
+      shape = {
+        id: nextId++, type: 'tp', groupId: null,
+        thick: 0,
+        x: parseFloat(p[1])||0, y: parseFloat(p[2])||0,
+        toX: to[0]||0, toY: to[1]||0,
+        translation: null, rotation: null
+      };
+      break;
+    }
+    default: return null;
+  }
+
+  if (!shape) return null;
+
+  // Parse nested transformations
+  for (const child of el.children) {
+    if (child.tagName === 'T') {
+      const tp = child.getAttribute('P').split(',').map(Number);
+      shape.translation = { start: tp[0], dur: tp[1], tx: tp[2], ty: tp[3], loop: tp[4]||0 };
+    }
+    if (child.tagName === 'R' && shape.type !== 'rect') {
+      // Rotation transform (not a rectangle shape)
+      const rp = child.getAttribute('P').split(',').map(Number);
+      shape.rotation = { start: rp[0], dur: rp[1], deg: rp[2], loop: rp[3]||0 };
+    }
+    // For shapes that use R tag (rect), rotation transforms inside are also R
+    // Disambiguate: if parent is a shape with content, nested R with 4 params = rotation
+    if (child.tagName === 'R' && shape.type === 'rect') {
+      const rp = child.getAttribute('P').split(',').map(Number);
+      if (rp.length <= 4) {
+        shape.rotation = { start: rp[0], dur: rp[1], deg: rp[2], loop: rp[3]||0 };
+      }
+    }
+  }
+
+  return shape;
+}
+
+// ═══════════════════════════════════════════════════════
+// MODAL
+// ═══════════════════════════════════════════════════════
+let modalMode = 'import';
+
+function showModal(mode) {
+  modalMode = mode;
+  const ta = document.getElementById('modal-xml');
+  if (mode==='import') {
+    document.getElementById('modal-title').textContent='Charger une carte';
+    ta.value=''; ta.placeholder='Collez le code XML de la carte ici...';
+    document.getElementById('modal-btn').textContent='Charger';
+  } else {
+    document.getElementById('modal-title').textContent='Exporter la carte';
+    ta.value=exportXML(); ta.placeholder='';
+    document.getElementById('modal-btn').textContent='Copier';
+  }
+  document.getElementById('modal-overlay').classList.add('visible');
+  ta.focus();
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('visible'); }
+
+function modalAction() {
+  const ta=document.getElementById('modal-xml');
+  if (modalMode==='import') {
+    importXML(ta.value.trim());
+    closeModal();
+  } else {
+    ta.select();
+    navigator.clipboard.writeText(ta.value);
+    const btn=document.getElementById('modal-btn');
+    btn.textContent='✓ Copié !';
+    setTimeout(()=>btn.textContent='Copier',1500);
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// HELP MODAL
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.help-tip').forEach(tip => {
+  tip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const text = tip.querySelector('.tip-text');
+    if (!text) return;
+    const h3 = tip.closest('h3') || tip.closest('.panel-section')?.querySelector('h3');
+    const title = h3 ? h3.childNodes[0].textContent.trim() : 'Aide';
+    document.getElementById('help-title').textContent = title;
+    document.getElementById('help-body').innerHTML = text.innerHTML;
+    document.getElementById('help-overlay').classList.add('visible');
+  });
+});
+function closeHelp() { document.getElementById('help-overlay').classList.remove('visible'); }
+document.addEventListener('keydown', e => { if (e.key==='Escape') closeHelp(); });
+
+// Init
+updateUI(); render();
+</script>
+</body>
+</html>

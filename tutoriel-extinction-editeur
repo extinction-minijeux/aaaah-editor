@@ -1,0 +1,425 @@
+Tutoriel de Garganta sur l'utilisation de l'éditeur
+
+
+Sommaire :
+
+
+Introduction
+
+
+I- Editeur
+
+
+1) Coordonnées
+  a. Introduction
+  b. Coordonnées d'un objet/groupe d'objets
+
+2) Formes
+  a. Ligne
+  b. Courbe
+  c. Rectangle
+  d. Ellipse
+  e. Groupes
+3) Translations et Rotations
+   a. Translation
+  b. Rotation
+4) Emboîtement des balises
+
+II- Obtention de 220 formes
+
+
+III- Créer une map défilante
+
+
+IV- Techniques
+
+
+1) Epaisseur d'une forme
+2) Dupliquer une forme ou un groupe de formes
+3) Formes parfaites et lignes horizontales/verticales
+4) Double translation
+5) Logiciel de transparence
+6) Rotation instantanée
+7) Formes atypiques
+
+V- Conclusion
+
+
+
+
+Introduction :
+
+
+Ce tutoriel n'a pas la prétention d'aborder tout ce qu'il est possible de faire sur l'éditeur, mais j'espère qu'il comblera vos attentes.
+
+J'aborderai, à peu près tout ce que vous pouvez trouver sur le forum en cherchant un peu, sauf que, pour le coup, tout est réuni dans un même tutoriel et le code est parfaitement lisible grâce aux chevrons (< >).
+
+Dans l'ordre, on se penchera sur le code d'une map et comment sont définies les formes dans l'éditeur. Ainsi, vous pourrez directement agir dessus via le bloc-notes. Puis comment dépasser les 100 formes, créer une map défilante, etc.
+
+Je ne parlerai pas du "gris". Si vous voulez connaître la technique, il faudra demander à quelqu'un d'autre. Je ne souhaite pas la diffuser directement sur le forum :p.
+
+En espérant pouvoir vous aider, c'est l'heure du tu-tu-tu-toriel !
+
+Mais avant toute chose, comment accéder à l'éditeur ?
+
+L'éditeur Aaaah ! est libre d'accès, et n'importe quel joueur peut l'utiliser. Pour cela il suffit de se rendre dans un salon Aaaah ! et d'utiliser la fonction /editeur.
+
+I- Editeur
+
+
+1) Coordonnées
+
+
+   a. Introduction
+
+
+Pour placer un objet dans un espace en deux dimensions, l'éditeur utilise des coordonnées. Il y en a deux, les abscisses (notées X) et les ordonnées (notées Y). Pour tout point A, on lui attribue les coordonnées (X;Y)
+
+Le point de coordonnées (0;0) se trouve dans le coin supérieur gauche de l'écran.
+Le coin inférieur droit de l'écran se trouve être le point de coordonnées (800;400).
+
+Explication des coordonnées.
+
+
+   b. Coordonnées d'un objet/groupe d'objets
+
+
+Les coordonnées d'un objet sont les coordonnées du point de la forme que vous avez tracé en premier. Par exemple pour cette ellipse :
+Coordonnées d'une forme.
+
+
+Elle a donc été tracée à partir du coin supérieur gauche.
+
+Cette règle reste valable pour un groupe de formes avec un système plus complexe. C'est la position en X (respectivement Y) de la forme ayant le point le plus à gauche (en haut) qui servent de point de référence et ce quelque soit le nombre de formes.
+
+Exemple :
+
+
+
+Coordonnées d'un groupe de formes.
+
+
+Dans cet exemple, la forme violette ainsi que la forme rouge ont été tracées de bas en haut, d'où la position par rapport aux extrémités basse de chaque forme.
+
+Les coordonnées d'une forme peuvent parfaitement être négatives.
+
+<C><G /><F><L P="6,-39,236,72,0" /></F></C>
+Tiens, des coordonnées négatives !
+
+
+2) Formes
+
+
+   a. Ligne (<L P=.../>)
+
+
+Code : <L P="épaisseur, position X, position Y, longueur, hauteur>
+
+Exemple : <C><G /><F><L P="6,300,150,135,0" /></F></C>
+Coordonnées d'une ligne.
+
+
+   b. Courbe (<C P=.../>)
+
+
+Code : <C P="épaisseur, position X, position Y, point d'angle X, point d'angle Y, longueur, hauteur>
+
+Exemple : <C><G /><F><C P="6,250,250,94,-100,200,0" /></F></C>
+Coordonnées d'une courbe.
+
+
+Pour les deux formes qui suivent, concernant le remplissage ou non de la forme :
+
+         0 = Vide
+         1 = Plein
+
+Par défaut, tout autre chiffre donnera une forme vide.
+
+   c. Rectangle (<R P=.../>)
+
+
+Code : <R P="épaisseur, position X, position Y, longueur, hauteur, forme vide/pleine>
+
+Exemple : <C><G /><F><R P="6,300,150,142,55,0" /></F></C>
+Forme avec remplissement optionnel.
+
+
+   d. Ellipse (<E P=.../>)
+
+
+Code : <E P="épaisseur, position X, position Y, longueur, hauteur, forme pleine vide>
+
+Exemple : <C><G /><F><E P="6,300,100,127,158,0" /></F></C>
+Coordonnées d'une ellipse.
+
+
+   e. Les groupes de formes (<G P=...><Formes></G>)
+
+
+Code : <G P= position X, position Y><Formes><G/>
+
+Exemple : <C><G><G P="279,159"><L P="6,389,159,-110,85" /><L P="6,279,244,162,84" /><L P="6,441,328,-52,-168" /></G></G><F /></C>
+Coordonnées d'un groupe de formes.
+
+
+Dans l'éditeur, il y a deux options qui permettent de grouper des formes :
+
+Comment grouper des formes.
+
+
+      -Grouper les formes sélectionnées entre elles
+
+Pour le coup il suffit tout simplement de sélectionner les formes que l'on souhaite grouper et d'utiliser cette option.
+
+Si vous souhaitez enlever une forme du groupe sans pour autant dégrouper toutes les formes du groupe c'est simple. Tracez un trait quelconque. Groupez-le avec la forme que vous souhaitez faire sortir du groupe. Supprimez le groupé qui vient d'être créé et voilà le tour est joué.
+
+      -Grouper/dégrouper toutes les formes
+
+Cette option permet de grouper/dégrouper toutes les formes, ce qui s'avère très utile pour la création de map défilante.
+
+Cependant, avec cette option c'est tout ou rien.
+Bien sûr si vous souhaitez faire sortir une forme du groupe, la méthode précédente
+reste valable.
+
+3) Translations et Rotations
+
+
+Les rotations et les translations sont ce que l'on appelle des transformations du plan.
+Si une forme subit une transformation du plan, cette dernière se voit dotée d'une nouvelle balise.
+Ainsi on obtient le schéma suivant :
+
+<Forme><Transformations du plan/></Forme>
+
+Si l'on groupe des formes les rotations et translations qui étaient appliquées à ces formes sont supprimées.
+Il est possible d'appliquer une translation et une rotation à une même forme.
+
+   a. Translation
+
+
+Code : <T P="départ après T secondes, temps du trajet (en seconde), position X finale, position Y finale, définition de la boucle" />
+
+       Boucle : - Pas de boucle 0
+                    - Boucle 1
+                    - Boucle aller et retour 2
+
+       Si vous entrez un nombre autre, par défaut il n'y aura pas de boucle.
+
+
+Exemples : <C><G /><F><L P="6,300,150,135,0"><T P="0,5,300,300,0" /></L></F></C>
+
+Une map défilante est une longue translation (ou une succession de translations)
+
+   b. Rotation
+
+
+Code : <R P="départ après T secondes, temps du trajet (en seconde), angle de la rotation (en degré), définition de la boucle" />
+
+Exemples : <C><G /><F><L P="6,300,150,135,0"><R P="0,5,90,0" /></L></F></C>
+
+
+Remarque : Concernant l'angle de la rotation, la rotation se fait dans le sens des aiguilles d'une montre. Pour obtenir une rotation dans le sens inverse des aiguilles d'une montre il suffit de donner une valeur négative.
+
+4) Emboîtement des balises
+
+
+Parce que les balise du code ne sont pas mélangées par hasard, voici le schéma d'Epeedelorage, légèrement modifié (ajout des < >), pour une meilleur lecture.
+
+<C>
+  <G> (Formes groupées)
+    <G P="(X),(Y)"> (1er groupe)
+      <L P=""/> (Sans mouvement)
+      <L P=""> (Avec mouvement)
+        <R P="" /> (Rotation du groupe)
+        <T P="" /> (Translation du groupe)
+      </L>               ... (Formes jointes suivantes)
+    </G>
+                         ... (Groupe de formes suivant)
+   <G />
+   <F> (Forme non groupée)
+      <L P=""/> (Sans mouvement)
+      <L P=""> (Avec mouvement)
+        <R P="" /> (Rotation de la forme)
+        <T P="" /> (Translation de la forme)
+      </L>
+                         ...
+   </F>
+</C>
+II- Obtention de 220 formes
+
+
+Le nombre de formes disponibles par défaut sur l'éditeur est de 100. Mais il est possible de charger en réalité un maximum de 220 formes. Au-delà, une partie des formes ne seront pas affiché lors du chargement de la map.
+
+Donc, tout, d'abord, il faut avoir atteint les 100 formes maximum. Il suffit ensuite de "Sauvegarder la carte dans le presse-papier" puis de coller le code dans un bloc-note (clic droit Coller, ou CTRL + V).
+
+Sauvegarder la carte dans le presse papier
+
+
+Il est nécessaire ensuite de rajouter manuellement une forme dans le code depuis votre bloc-note, pour atteindre 101 formes ! La solution la plus simple pour cela reste de dupliquer simplement une forme présente dans le code (voir la partie 4.2 de ce tutoriel) !
+
+Chargez le nouveau code dans l'éditeur, et vous aurez alors la possibilité de mapper jusqu'à atteindre 220 formes.
+
+/!\
+ Dépasser les 100 formes est certes toléré par la modération, mais il s'agit là d'un abus de bug, donc utilisez-le avec moultes (quel joli mot) précautions /!\
+
+III- Créer une map défilante
+
+
+Les premières formes :
+
+Mappez les premières formes qui s'afficheront à l'écran...
+
+- Ces premières formes
+
+
+              ...puis groupez les avec l'option : "Grouper/dégrouper toutes les formes".
+
+Décalez ensuite ce groupe dans la même direction que le défilement (ici par exemple je décale le groupe vers la gauche, donc la translation ira de la droite vers la gauche).
+Une fois que c'est fait, mappez la suite de la map.
+
+Et renouvelez l'opération écran après écran...
+
+- Encore...
+
+- encore...
+
+- et encore...
+
+- etc...
+                 ...Pour obtenir un groupe très long.
+
+Une fois le groupe terminé (la map est prête mais reste immobile), place à la translation.
+Placez la map dans sa position finale (là où elle devra s'arrêter). Sélectionnez votre groupe et appliquez lui une translation. Placez alors votre groupe dans sa position de départ.
+Paramétrez le temps de trajet de la map et l'instant de départ.
+
+Remarques :
+
+           -Pour que la translation soit droite veuillez à faire attention à ce que la position Y du groupe reste la même :3. Ici c'est une map défilante horizontale. S'il s'agit d'une map verticale, il faut alors que la position X du groupe reste la même.
+           -Vous pouvez aussi commencer par mapper la map à partir de la fin, on procède de la même façon, sauf que pour le coup vous décalerez le groupe dans la direction opposée à celle du défilement (par exemple vers la droite si votre map va de la droite vers la gauche).
+
+Ceci vous apprend à créer une map défilante toute simple. Mais vous pouvez faire une map qui fait un aller-retour (AR), ou alors avec un sol qui remonte sur la fin, ou encore même une défilante multi-directionnelle !
+
+Si vous avez des suggestions, ou des questions concernant ce tutoriel, chuchotez moi Ig :).
+
+IV- Trucs et astuces
+
+
+1) Modifier l'épaisseur d'une forme
+
+
+Vous l'aurez sans doute remarqué, mais dans l'éditeur on ne peut utiliser que des formes dont l'épaisseur varie entre 3 et 50. Il est cependant possible de modifier cette épaisseur directement sur le code de la forme ciblée. On peut ainsi choisir une épaisseur allant de 1 à 255.
+
+Une forme : Une forme
+
+
+Copiez/collez le code dans le bloc-note, repérez la forme ciblée (grâce a ses coordonnées par exemple) et modifier l'épaisseur de la forme (le premier chiffre si vous avez bien suivi).
+Comme montré ici !
+
+
+Voilà le résultat : La même forme à épaisseur 75
+
+
+À noter que l'abus de cette astuce, en particulier pour les formes de taille 1, 2 et 3 est mal perçu par la communauté.
+
+2) Dupliquer une forme ou un groupe de formes
+
+
+Il vous est peut être déjà arrivé d'avoir a faire deux fois la même forme. C'est très simple. Il suffit tout simplement de dupliquer directement le code la forme ou le groupe de formes ciblé.
+
+Il vous faut donc une forme ou un groupe de formes à dupliquer.
+Par exemple un groupe de trois lignes :
+
+<C><G><G P="288,367"><L P="10,288,367,0,43" /><L P="10,318,367,0,41" /><L P="10,348,367,0,38" /></G></G><F /></C>
+
+Trois lignes
+
+
+Puis on copie/colle le code dans le Bloc-notes, ou on va lui appliquer les modifications suivante :
+
+Elles sont ici !
+
+
+Au final on se retrouve avec deux groupes identiques superposés. Il suffit de les déplacer ensuite à sa guise :
+
+Lien photo ici !
+
+
+3) Formes parfaites et lignes horizontales/verticales
+
+
+Ces formes peuvent s'avérer très utiles, et surtout elles sont souvent plus esthétiques :p.
+
+Les lignes horizontales et verticales s'obtiennent grâce à une hauteur ou une longueur égale à 0.
+
+<C><G /><F><L P="6,408,178,0,71" /><L P="6,398,248,-69,0" /></F></C>
+Une ligne verticale et une ligne horizontale !
+
+
+Pour avoir un carré il faut un rectangle de longueur et de hauteur égales.
+
+<C><G /><F><R P="6,310,160,82,82,1" /></F></C>
+Un carré
+
+
+Pour avoir un cercle il faut une ellipse de longueur et de hauteur égales.
+
+<C><G /><F><E P="6,300,100,140,140,0" /></F></C>
+Un cercle
+
+
+4) Double translation
+
+
+Il n'est malheureusement pas possible d'appliquer deux translations dans l'éditeur. En revanche il est possible d'appliquer une translation et une rotation à un même objet. Le principe de la double translation, c'est d'utiliser une translation et une rotation avec un très large rayon.
+
+Tout d'abord il faut grouper deux formes, celle qui apparaitra à l'écran et celle qui sert à augmenter le rayon de la translation.
+
+<C><G /><F><R P="10,268,273,28,58,1" /><E P="10,368,273,3,4,1" /></F></C>
+Comme montré ici
+
+
+On copie/colle le code dans le Bloc-notes et on modifie les coordonnées de la forme "contrepoids".
+
+C'est ici !
+
+
+Et après avoir groupé les deux formes, on applique la translation et la rotation.
+
+Application ici !
+
+
+Au final on obtient :
+
+<C><G><G P="368,273"><R P="10,368,273,28,58,1"><R P="5,50,10,0" /><T P="0,5,268,273,0" /></R><E P="10,100100,273,3,4,1" /></G></G><F /></C>
+
+5) Logiciel de transparence
+
+
+Ils sont indispensables si vous voulez faire des map dessins. Il permettent de diminuer l'opacité de la fenêtre internet ainsi de pouvoir décalquer l'image derrière. Personnellement j'utilise Vitrite, il est très simple d'utilisation. Mais il y en a d'autres.
+
+Tout d'abord choisissez une image. puis placez la derrière l'écran de l'éditeur. Activez votre logiciel. Il ne vous reste plus qu'à décalquer !
+
+Comme ceci
+6) Rotation instantanée
+
+
+Cette technique permet d'obtenir la rotation d'une forme avant que la map ne commence. Pour cela il vous faut une forme sur laquelle on applique une rotation (logique n'est-ce pas ?) :
+
+<C><G /><F><R P="10,336,139,35,136,0"><R P="0,20,45,0" /></R></F></C>
+Forme sans rotation
+
+
+Puis on c/c le code dans l'éditeur ou l'on modifie le temps de départ (-10000) et la durée de rotation (10001) de la forme (ou du groupe de formes) :
+Code dans le bloc-note !
+
+
+Au final dans l'éditeur rien n'a changé, mais testez la carte et voilà ce que vous obtiendrez :
+Forme terminée
+
+
+7) Formes atypiques
+
+
+Faute d'avoir trouvé un meilleur qualificatif à ces formes on les obtient de la même manière qu'un demi-cercle (sauf que là il n'y a que deux points à poser et c'est donc le second point que l'on décale), mais en utilisant une ellipse ou un rectangle.
+
+<C><G /><F><R P="50,196,250,-1,1,0" /><E P="50,350,250,2,2,0" /><E P="50,425,250,-1,-1,0" /><E P="50,500,250,2,-4,0" /></F></C>
+Formes atypiques
